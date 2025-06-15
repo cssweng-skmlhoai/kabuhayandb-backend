@@ -4,7 +4,6 @@ import 'dotenv/config';
 const app = express();
 
 app.use(urlencoded({ extended: true }));
-wow;
 app.use(json());
 
 app.listen(process.env.PORT || 3000, () => {
