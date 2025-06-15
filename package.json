@@ -1,0 +1,21 @@
+{
+  "name": "kabuhayandb-backend",
+  "version": "1.0.0",
+  "description": "The backend repository for Kabuhayan DB",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cssweng-skmlhoai/kabuhayandb-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cssweng-skmlhoai/kabuhayandb-backend/issues"
+  },
+  "homepage": "https://github.com/cssweng-skmlhoai/kabuhayandb-backend#readme"
+}
