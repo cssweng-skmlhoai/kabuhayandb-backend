@@ -48,5 +48,8 @@
     "prettier": "^3.5.3",
     "supertest": "^7.1.1",
     "vitest": "^3.2.3"
+  },
+  "dependencies": {
+    "mysql2": "^3.14.1"
   }
 }
