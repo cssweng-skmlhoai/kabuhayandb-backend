@@ -1,10 +1,12 @@
 import pool from './connect.js';
 
+// NOTE: can be deprecated after
+
 async function testConnection() {
   try {
     const values = [
-    [1200.50, 850.75, 300.00],
-    [1300.00, 900.00, 350.00],
+      [1200.5, 850.75, 300.0],
+      [1300.0, 900.0, 350.0],
     ];
 
     await pool.query(
