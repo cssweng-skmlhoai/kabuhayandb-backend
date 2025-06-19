@@ -51,6 +51,7 @@
     "vitest": "^3.2.3"
   },
   "dependencies": {
+    "express": "^5.1.0",
     "mysql2": "^3.14.1"
   }
 }
