@@ -1,13 +1,13 @@
-CREATE DATABASE IF NOT EXISTS `csswengDB`;
-USE csswengDB;
+CREATE DATABASE IF NOT EXISTS `kabuhayan_db`;
+USE kabuhayan_db;
 
-DROP TABLE IF EXISTS `csswengDB`.`dues`;
-DROP TABLE IF EXISTS `csswengDB`.`households`;
-DROP TABLE IF EXISTS `csswengDB`.`members`;
-DROP TABLE IF EXISTS `csswengDB`.`families`;
-DROP TABLE IF EXISTS `csswengDB`.`family_members`;
+DROP TABLE IF EXISTS `kabuhayan_db`.`dues`;
+DROP TABLE IF EXISTS `kabuhayan_db`.`households`;
+DROP TABLE IF EXISTS `kabuhayan_db`.`members`;
+DROP TABLE IF EXISTS `kabuhayan_db`.`families`;
+DROP TABLE IF EXISTS `kabuhayan_db`.`family_members`;
 
-CREATE TABLE `csswengDB`.`dues` (
+CREATE TABLE `kabuhayan_db`.`dues` (
   `dues_id` INT NOT NULL AUTO_INCREMENT,
   `due_date` TIMESTAMP NOT NULL,
   `amount` FLOAT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE `csswengDB`.`dues` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
-CREATE TABLE `csswengDB`.`households` (
+CREATE TABLE `kabuhayan_db`.`households` (
   `household_id` int NOT NULL,
   `condition_type` ENUM (
     'Needs minor repair',        
@@ -46,7 +46,7 @@ CREATE TABLE `csswengDB`.`households` (
   FOREIGN KEY (`dues_id`) REFERENCES `dues` (`dues_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `csswengDB`.`members` (
+CREATE TABLE `kabuhayan_db`.`members` (
   `member_id` int NOT NULL,
   `last_name` varchar(80) NOT NULL,
   `first_name` varchar(80) NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE `csswengDB`.`members` (
   PRIMARY KEY (`member_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `csswengDB`.`families` (
+CREATE TABLE `kabuhayan_db`.`families` (
   `family_id` int NOT NULL AUTO_INCREMENT,
   `family_head_id` int NOT NULL,
   `head_position` varchar(80) NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE `csswengDB`.`families` (
   FOREIGN KEY (`household_id`) REFERENCES `households` (`household_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `csswengDB`.`family_members` (
+CREATE TABLE `kabuhayan_db`.`family_members` (
   `family_member_id` int NOT NULL,
   `family_id` int NOT NULL,
   `last_name` varchar(80) NOT NULL,
