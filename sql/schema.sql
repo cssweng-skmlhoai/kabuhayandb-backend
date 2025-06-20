@@ -8,12 +8,21 @@ DROP TABLE IF EXISTS `csswengDB`.`families`;
 DROP TABLE IF EXISTS `csswengDB`.`family_members`;
 
 CREATE TABLE `csswengDB`.`dues` (
-  `dues_id` int NOT NULL AUTO_INCREMENT,
-  `Meralco` decimal(10,2) NOT NULL,
-  `Maynilad` decimal(10,2) NOT NULL,
-  `Septic_Tank` decimal(10,2) NOT NULL,
+  `dues_id` INT NOT NULL AUTO_INCREMENT,
+  `due_date` TIMESTAMP NOT NULL,
+  `amount` FLOAT NOT NULL,
+  `status` ENUM('Paid', 'Unpaid') NOT NULL,
+  `due_type` ENUM(
+    'Monthly Amortization', 
+    'Monthly Dues', 
+    'Taxes', 
+    'Penalties', 
+    'Others'
+  ) NOT NULL,
+  `receipt_number` VARCHAR(50),
   PRIMARY KEY (`dues_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE `csswengDB`.`households` (
   `household_id` int NOT NULL,
@@ -29,6 +38,9 @@ CREATE TABLE `csswengDB`.`households` (
   `lot_no` int NOT NULL,
   `area` mediumblob NOT NULL,
   `open_space_share` text NOT NULL,
+  `Meralco` BOOLEAN NOT NULL,
+  `Maynilad` BOOLEAN NOT NULL,
+  `Septic_Tank` BOOLEAN NOT NULL,
   `dues_id` INT NOT NULL,
   PRIMARY KEY (`household_id`),
   FOREIGN KEY (`dues_id`) REFERENCES `dues` (`dues_id`)
