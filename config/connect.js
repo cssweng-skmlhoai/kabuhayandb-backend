@@ -60,7 +60,7 @@ export const getDB = async () => {
     return initDB();
   }
 
-  console.log(pool);
+  // console.log(pool);
 
   return pool;
 };
