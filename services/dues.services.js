@@ -1,12 +1,16 @@
-import mysql from 'mysql2';
 import { getDB } from './../config/connect.js';
 
 export async function getDues() {
   const db = await getDB();
+  const [dues] = await db.query('SELECT * FROM dues');
+  return dues;
+}
 
-  const [events] = await db.execute('SELECT * FROM dues');
-
-  return events;
+export async function getDueById(id) {
+  const db = await getDB();
+  const [dues] = await db.query('SELECT * FROM dues WHERE id = ?', [id]);
+  const due = dues[0];
+  return due || null;
 }
 
 export async function createDues(data) {
@@ -19,7 +23,7 @@ export async function createDues(data) {
     values
   );
 
-  const created_event = {
+  const created_due = {
     id: rows.insertId,
     amount,
     status,
@@ -27,7 +31,7 @@ export async function createDues(data) {
     receipt_number,
   };
 
-  return created_event;
+  return created_due;
 }
 
 export async function updateDues(id, updates) {
@@ -66,8 +70,5 @@ export async function deleteDues(id) {
     [id]
   );
 
-  return {
-    success: true,
-    affectedRows: result.affectedRows,
-  };
+  return result.affectedRows;
 }
