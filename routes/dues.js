@@ -8,9 +8,7 @@ router.get('/read', async (req, res) => {
   try {
     const pool = await getDB();
 
-    console.log('Here!');
     const [rows] = await pool.execute('SELECT * FROM dues');
-    console.log('Here!');
 
     res.send(rows);
     console.log('Here!');
