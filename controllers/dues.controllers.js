@@ -1,5 +1,4 @@
 import * as DuesService from '../services/dues.services.js';
-import 'dotenv/config';
 
 export async function getDues(req, res) {
   try {
