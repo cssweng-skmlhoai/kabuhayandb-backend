@@ -1,5 +1,6 @@
 import express, { urlencoded, json } from 'express';
 import { initDB, closeDB } from './config/connect.js';
+import duesRouter from './routes/dues.js'
 import 'dotenv/config';
 
 const app = express();
@@ -11,6 +12,7 @@ const startServer = async () => {
 
     app.use(json());
     app.use(urlencoded({ extended: true }));
+    app.use('/dues', duesRouter)
 
     app.get('/', (req, res) => {
       res.status(200).json({
