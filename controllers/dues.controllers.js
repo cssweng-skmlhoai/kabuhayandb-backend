@@ -14,6 +14,8 @@ export async function getDuesById(req, res) {
   try {
     const { id } = req.params.id;
     const due = await DuesService.getDueById(id);
+
+    // checks if due exists
     if (due) res.status(200).json(due);
     else res.status(404).json({ message: `No due found with id: ${id}` });
   } catch (error) {
@@ -39,6 +41,7 @@ export async function updateDues(req, res) {
 
     const result = await DuesService.updateDues(id, updates);
 
+    // checks if due is found given id
     if (result.affectedRows === 0) {
       res.status(404).json({ message: `No due found with id: ${id}` });
     } else {
@@ -56,6 +59,7 @@ export async function deleteDues(req, res) {
     const { id } = req.params;
     const affected_rows = await DuesService.deleteDues(id);
 
+    // checks if due is found
     if (affected_rows === 0) {
       res.status(404).json({ message: `No due found with id: ${id}` });
     } else {

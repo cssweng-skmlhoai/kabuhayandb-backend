@@ -1,11 +1,13 @@
 import { getDB } from './../config/connect.js';
 
+// GET '/dues'
 export async function getDues() {
   const db = await getDB();
   const [dues] = await db.query('SELECT * FROM dues');
   return dues;
 }
 
+// GET '/dues/:id'
 export async function getDueById(id) {
   const db = await getDB();
   const [dues] = await db.query('SELECT * FROM dues WHERE id = ?', [id]);
@@ -13,6 +15,7 @@ export async function getDueById(id) {
   return due || null;
 }
 
+// POST '/dues'
 export async function createDues(data) {
   const db = await getDB();
   const { amount, status, due_type, receipt_number } = data;
@@ -34,6 +37,7 @@ export async function createDues(data) {
   return created_due;
 }
 
+// PUT '/dues/:id'
 export async function updateDues(id, updates) {
   const db = await getDB();
 
@@ -62,6 +66,7 @@ export async function updateDues(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
+// DELETE '/dues/:id'
 export async function deleteDues(id) {
   const db = await getDB();
 
