@@ -15,3 +15,5 @@ router.put('/:id', DuesController.updateDues);
 // catch all routes
 router.post('/', DuesController.createDues);
 router.get('/', DuesController.getDues);
+
+export default router;
