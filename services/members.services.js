@@ -37,8 +37,6 @@ export async function createMembers(data) {
     family_id,
   ];
 
-  console.log(values);
-
   const [rows] = await db.execute(
     'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?)',
     values

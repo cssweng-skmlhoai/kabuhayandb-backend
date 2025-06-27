@@ -19,7 +19,7 @@ export async function getDuesById(id) {
 export async function createDues(data) {
   const db = await getDB();
   const { due_date, amount, status, due_type, receipt_number } = data;
-  const values = [due_date, amount, status, due_type, receipt_number];
+  const values = [new Date(due_date), amount, status, due_type, receipt_number];
 
   const [rows] = await db.execute(
     'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`) VALUES (?, ?, ?, ?, ?)',
