@@ -8,7 +8,7 @@ export async function getDues() {
 }
 
 // GET '/dues/:id'
-export async function getDueById(id) {
+export async function getDuesById(id) {
   const db = await getDB();
   const [dues] = await db.query('SELECT * FROM dues WHERE id = ?', [id]);
   const due = dues[0];
@@ -18,8 +18,8 @@ export async function getDueById(id) {
 // POST '/dues'
 export async function createDues(data) {
   const db = await getDB();
-  const { amount, status, due_type, receipt_number } = data;
-  const values = [new Date(), amount, status, due_type, receipt_number];
+  const { due_date, amount, status, due_type, receipt_number } = data;
+  const values = [due_date, amount, status, due_type, receipt_number];
 
   const [rows] = await db.execute(
     'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`) VALUES (?, ?, ?, ?, ?)',
@@ -59,7 +59,7 @@ export async function updateDues(id, updates) {
   const value = updates[column];
 
   const [result] = await db.execute(
-    `UPDATE kabuhayan_db.dues SET \`${column}\` = ? WHERE dues_id = ?`,
+    `UPDATE kabuhayan_db.dues SET \`${column}\` = ? WHERE id = ?`,
     [value, id]
   );
 
@@ -71,7 +71,7 @@ export async function deleteDues(id) {
   const db = await getDB();
 
   const [result] = await db.execute(
-    'DELETE FROM kabuhayan_db.dues WHERE dues_id = ?',
+    'DELETE FROM kabuhayan_db.dues WHERE id = ?',
     [id]
   );
 

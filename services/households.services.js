@@ -1,0 +1,113 @@
+import { getDB } from '../config/connect.js';
+
+// GET '/households'
+export async function getHouseholds() {
+  const db = await getDB();
+  const [households] = await db.query('SELECT * FROM households');
+  return households;
+}
+
+// GET '/households/:id'
+export async function getHouseholdById(id) {
+  const db = await getDB();
+  const [households] = await db.query('SELECT * FROM households WHERE id = ?', [
+    id,
+  ]);
+  const household = households[0];
+  return household || null;
+}
+
+// POST '/households'
+export async function createHouseholds(data) {
+  const db = await getDB();
+  const {
+    condition_type,
+    tct_no,
+    block_no,
+    lot_no,
+    area,
+    open_space_share,
+    Meralco,
+    Maynilad,
+    Septic_Tank,
+    dues_id,
+  } = data;
+  const values = [
+    condition_type,
+    tct_no,
+    block_no,
+    lot_no,
+    area,
+    open_space_share,
+    Meralco,
+    Maynilad,
+    Septic_Tank,
+    dues_id,
+  ];
+  const [rows] = await db.execute(
+    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`, `dues_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    values
+  );
+
+  const created_household = {
+    id: rows.insertId,
+    condition_type,
+    tct_no,
+    block_no,
+    lot_no,
+    area,
+    open_space_share,
+    Meralco,
+    Maynilad,
+    Septic_Tank,
+    dues_id,
+  };
+
+  return created_household;
+}
+
+// PUT '/households/:id'
+export async function updateHouseholds(id, updates) {
+  const db = await getDB();
+
+  const allowedColumns = [
+    'condition_type',
+    'tct_no',
+    'block_no',
+    'lot_no',
+    'area',
+    'open_space_share',
+    'Meralco',
+    'Maynilad',
+    'Septic_Tank',
+    'dues_id',
+  ];
+
+  const keys = Object.keys(updates);
+
+  if (keys.length !== 1 || !allowedColumns.includes(keys[0])) {
+    throw new Error('Only one valid column can be updated at a time.');
+  }
+
+  const column = keys[0];
+  const value = updates[column];
+
+  const [result] = await db.execute(
+    `UPDATE kabuhayan_db.households SET \`${column}\` = ? WHERE id = ?`,
+    [value, id]
+  );
+
+  return { affectedRows: result.affectedRows };
+}
+
+// DELETE '/households/:id'
+export async function deleteHouseholds(id) {
+  const db = await getDB();
+
+  const [result] = await db.execute(
+    'DELETE FROM kabuhayan_db.households WHERE id = ?',
+    [id]
+  );
+
+  return result.affectedRows;
+}
