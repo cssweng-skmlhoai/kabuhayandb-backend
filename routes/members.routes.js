@@ -12,8 +12,10 @@ router.get('/:id', MembersController.getMembersById);
 router.delete('/:id', MembersController.deleteMembers);
 router.put('/:id', MembersController.updateMembers);
 
+// name route
+router.get('/:first/:last', MembersController.getMembersByName);
+
 // catch all routes
 router.post('/', MembersController.createMembers);
 router.get('/', MembersController.getMembers);
-
 export default router;

@@ -15,6 +15,16 @@ export async function getMemberById(id) {
   return member || null;
 }
 
+// GET '/members/:first/:last'
+export async function getMemberByName(first, last) {
+  const db = await getDB();
+  const [members] = await db.query(
+    'SELECT * FROM members WHERE first_name = ? AND last_name = ?'
+  );
+  const member = members[0];
+  return member || null;
+}
+
 // POST '/members'
 export async function createMembers(data) {
   const db = await getDB();
