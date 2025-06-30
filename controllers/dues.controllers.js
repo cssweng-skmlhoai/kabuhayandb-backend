@@ -12,8 +12,9 @@ export async function getDues(req, res) {
 
 export async function getDuesById(req, res) {
   try {
-    const { id } = req.params.id;
-    const due = await DuesService.getDueById(id);
+    const id = req.params.id;
+    console.log('Controller id: ' + id);
+    const due = await DuesService.getDuesById(id);
 
     // checks if due exists
     if (due) res.status(200).json(due);
