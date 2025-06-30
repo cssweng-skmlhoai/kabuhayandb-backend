@@ -19,7 +19,9 @@ export async function getMemberById(id) {
 export async function getMemberByName(first, last) {
   const db = await getDB();
   const [members] = await db.query(
-    'SELECT * FROM members WHERE first_name = ? AND last_name = ?'
+    'SELECT * FROM members WHERE first_name = ? AND last_name = ?',
+    [first],
+    [last]
   );
   const member = members[0];
   return member || null;
