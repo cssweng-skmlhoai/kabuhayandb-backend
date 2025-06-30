@@ -1,4 +1,5 @@
 import express, { urlencoded, json } from 'express';
+import cors from 'cors';
 import { initDB, closeDB } from './config/connect.js';
 import duesRouter from './routes/dues.routes.js';
 import membersRouter from './routes/members.routes.js';
@@ -17,6 +18,12 @@ const startServer = async () => {
 
     app.use(json());
     app.use(urlencoded({ extended: true }));
+    app.use(
+      cors({
+        origin: process.env.CORS_ORIGIN || '*',
+        credentials: true,
+      })
+    );
 
     app.use(authenticateApiSecret);
 
