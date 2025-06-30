@@ -36,6 +36,7 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
+    is_admin,
   } = data;
   const values = [
     last_name,
@@ -45,10 +46,11 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
+    is_admin,
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`, `is_admin`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -61,6 +63,7 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
+    is_admin,
   };
 
   return created_member;
@@ -78,6 +81,7 @@ export async function updateMembers(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
+    'is_admin',
   ];
 
   const keys = Object.keys(updates);
