@@ -1,11 +1,7 @@
 import * as MembersController from '../controllers/members.controllers.js';
-import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 import { Router } from 'express';
 
 const router = Router();
-
-// authenticate api fetch
-router.use(authenticateApiSecret);
 
 // generic id routes
 router.get('/:id', MembersController.getMembersById);
