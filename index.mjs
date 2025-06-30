@@ -5,6 +5,7 @@ import membersRouter from './routes/members.routes.js';
 import familiesRouter from './routes/families.routes.js';
 import householdsRouter from './routes/households.routes.js';
 import credentialsRouter from './routes/credentials.routes.js';
+import { authenticateApiSecret } from './middlewares/auth.middleware.js';
 import 'dotenv/config';
 
 const app = express();
@@ -16,6 +17,9 @@ const startServer = async () => {
 
     app.use(json());
     app.use(urlencoded({ extended: true }));
+
+    app.use(authenticateApiSecret);
+
     app.use('/dues', duesRouter);
     app.use('/members', membersRouter);
     app.use('/families', familiesRouter);
