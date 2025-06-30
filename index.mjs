@@ -4,6 +4,7 @@ import duesRouter from './routes/dues.routes.js';
 import membersRouter from './routes/members.routes.js';
 import familiesRouter from './routes/families.routes.js';
 import householdsRouter from './routes/households.routes.js';
+import credentialsRouter from './routes/credentials.routes.js';
 import 'dotenv/config';
 
 const app = express();
@@ -19,6 +20,7 @@ const startServer = async () => {
     app.use('/members', membersRouter);
     app.use('/families', familiesRouter);
     app.use('/households', householdsRouter);
+    app.use('/credentials', credentialsRouter);
 
     app.get('/', (req, res) => {
       res.status(200).json({
