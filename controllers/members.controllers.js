@@ -12,8 +12,13 @@ export async function getMembers(req, res) {
 
 export async function getMembersHome(req, res) {
   try {
-    const members = await MembersService.getMembersHome();
+    const name = req.query.name;
+    if (name) {
+      const member = await MembersService.getMembersHomeByName(name);
+      return res.status(200).json(member);
+    }
 
+    const members = await MembersService.getMembersHome();
     res.status(200).json(members);
   } catch (error) {
     res.status(500).json({ error: error.message });

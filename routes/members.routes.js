@@ -3,6 +3,8 @@ import { Router } from 'express';
 
 const router = Router();
 
+router.get('/home', MembersController.getMembersHome);
+
 // generic id routes
 router.get('/:id', MembersController.getMembersById);
 router.delete('/:id', MembersController.deleteMembers);
