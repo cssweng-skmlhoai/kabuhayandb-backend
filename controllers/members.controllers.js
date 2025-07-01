@@ -10,6 +10,16 @@ export async function getMembers(req, res) {
   }
 }
 
+export async function getMembersHome(req, res) {
+  try {
+    const members = await MembersService.getMembersHome();
+
+    res.status(200).json(members);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function getMembersById(req, res) {
   try {
     const { id } = req.params.id;
