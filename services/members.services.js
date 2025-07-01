@@ -33,6 +33,29 @@ export async function getMembersHome() {
   return members;
 }
 
+export async function getMembersHomeByName(name) {
+  const db = await getDB();
+
+  const [members] = await db.query(
+    `
+    SELECT 
+      m.id AS member_id,
+      CONCAT(m.first_name, ' ', m.last_name) AS fullname,
+      f.head_position,
+      h.block_no,
+      h.lot_no,
+      h.tct_no
+    FROM members m
+    JOIN families f ON m.family_id = f.id
+    JOIN households h ON f.household_id = h.id
+    WHERE CONCAT(m.first_name, ' ', m.last_name) LIKE ?;
+  `,
+    [`%${name}%`]
+  );
+  const member = members[0];
+  return member || null;
+}
+
 // POST '/members'
 export async function createMembers(data) {
   const db = await getDB();
