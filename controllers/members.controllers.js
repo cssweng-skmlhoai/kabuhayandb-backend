@@ -22,7 +22,7 @@ export async function getMembersHome(req, res) {
 
 export async function getMembersById(req, res) {
   try {
-    const { id } = req.params.id;
+    const id = req.params.id;
     const member = await MembersService.getMemberById(id);
 
     // checks if member exists
