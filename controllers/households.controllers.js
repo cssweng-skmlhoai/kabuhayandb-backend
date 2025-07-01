@@ -12,7 +12,7 @@ export async function getHouseholds(req, res) {
 
 export async function getHouseholdsById(req, res) {
   try {
-    const { id } = req.params.id;
+    const id = req.params.id;
     const household = await HouseholdsService.getHouseholdById(id);
 
     // checks if household exists

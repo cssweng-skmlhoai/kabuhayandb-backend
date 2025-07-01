@@ -15,6 +15,21 @@ export async function getMemberById(id) {
   return member || null;
 }
 
+// GET '/members/home'
+export async function getMembersHome() {
+  const db = await getDB();
+  const [members] = await db.query(`SELECT m.member_id,
+  CONCAT(m.first_name, ' ', m.last_name) AS fullname,
+  f.head_position,
+  h.block_no,
+  h.lot_no,
+  h.tct_no,
+  FROM members m
+  JOIN families f ON m.family_id = f.family_id
+  JOIN households h ON f.household_id = h.household_id;`);
+  return members;
+}
+
 // POST '/members'
 export async function createMembers(data) {
   const db = await getDB();
