@@ -7,6 +7,7 @@ const router = Router();
 router.get('/:id', HouseholdsController.getHouseholdsById);
 router.delete('/:id', HouseholdsController.deleteHouseholds);
 router.put('/:id', HouseholdsController.updateHouseholds);
+router.put('/:id', HouseholdsController.updateHouseholdMultiple);
 
 // catch all routes
 router.post('/', HouseholdsController.createHouseholds);

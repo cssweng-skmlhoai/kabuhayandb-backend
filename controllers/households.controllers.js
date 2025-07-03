@@ -12,8 +12,8 @@ export async function getHouseholds(req, res) {
 
 export async function getHouseholdsById(req, res) {
   try {
-    const { id } = req.params.id;
-    const household = await HouseholdsService.gethouseholdById(id);
+    const id = req.params.id;
+    const household = await HouseholdsService.getHouseholdById(id);
 
     // checks if household exists
     if (household) res.status(200).json(household);
@@ -67,5 +67,24 @@ export async function deleteHouseholds(req, res) {
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+}
+
+export async function updateHouseholdMultiple(req, res) {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const result = await HouseholdsService.updateHouseholdMultiple(id, updates);
+
+    if (result.affectedRows === 0) {
+      res.status(404).json({ message: `No household found with id: ${id}` });
+    } else {
+      res
+        .status(200)
+        .json({ success: true, affected_rows: result.affectedRows });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 }
