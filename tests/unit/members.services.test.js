@@ -143,7 +143,6 @@ describe('testing createMembers() functionalities', () => {
       confirmity_signature: 'sign4.png',
       remarks: 'WE NEED THE MONEY FOR TAHITI',
       family_id: 4,
-      is_admin: 1,
     };
 
     //mock database functions
@@ -155,7 +154,7 @@ describe('testing createMembers() functionalities', () => {
 
     //expect actual function logic to be correct
     expect(mockDB.execute).toHaveBeenCalledWith(
-      'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`, `is_admin`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?)',
       expect.any(Array)
     );
 
@@ -168,7 +167,6 @@ describe('testing createMembers() functionalities', () => {
     expect(calledValues[4]).toBe('sign4.png');
     expect(calledValues[5]).toBe('WE NEED THE MONEY FOR TAHITI');
     expect(calledValues[6]).toBe(4);
-    expect(calledValues[7]).toBe(1);
 
     expect(result).toEqual({
       id: fakeInsertID,
@@ -179,7 +177,6 @@ describe('testing createMembers() functionalities', () => {
       confirmity_signature: 'sign4.png',
       remarks: 'WE NEED THE MONEY FOR TAHITI',
       family_id: 4,
-      is_admin: 1,
     });
   });
 });

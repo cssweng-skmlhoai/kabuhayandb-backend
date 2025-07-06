@@ -81,7 +81,7 @@ export async function createMembers(data) {
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`, `is_admin`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -143,7 +143,6 @@ export async function updateMemberMultiple(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
-    'is_admin',
   ];
 
   const setParts = [];
