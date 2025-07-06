@@ -67,6 +67,7 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
+    is_admin,
   } = data;
   const values = [
     last_name,
@@ -76,6 +77,7 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
+    is_admin,
   ];
 
   const [rows] = await db.execute(
@@ -92,6 +94,7 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
+    is_admin,
   };
 
   return created_member;
@@ -109,6 +112,7 @@ export async function updateMembers(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
+    'is_admin',
   ];
 
   const keys = Object.keys(updates);
@@ -124,6 +128,66 @@ export async function updateMembers(id, updates) {
     `UPDATE kabuhayan_db.members SET \`${column}\` = ? WHERE id = ?`,
     [value, id]
   );
+
+  return { affectedRows: result.affectedRows };
+}
+
+export async function updateMemberMultiple(id, updates) {
+  const db = await getDB();
+
+  const allowedColumns = [
+    'last_name',
+    'first_name',
+    'middle_name',
+    'birth_date',
+    'confirmity_signature',
+    'remarks',
+    'family_id',
+  ];
+
+  const setParts = [];
+  const values = [];
+
+  for (const column in updates) {
+    if (allowedColumns.includes(column)) {
+      let valueToPush = updates[column];
+
+      if (column === 'birth_date') {
+        if (valueToPush === null || valueToPush === undefined) {
+          valueToPush = null;
+        } else if (typeof valueToPush === 'string') {
+          const parsedDate = new Date(valueToPush);
+          if (isNaN(parsedDate.getTime())) {
+            throw new Error(
+              `Invalid date format for birth_date: "${valueToPush}". Expected a valid date string (e.g., "YYYY-MM-DD") or a Date object.`
+            );
+          }
+          valueToPush = parsedDate;
+        } else if (!(valueToPush instanceof Date)) {
+          throw new Error(
+            `Invalid type for birth_date: expected Date object, string, null, or undefined.`
+          );
+        }
+      }
+
+      setParts.push(`\`${column}\` = ?`);
+      values.push(valueToPush);
+    } else {
+      throw new Error(`Attempted to update an unauthorized column: ${column}`);
+    }
+  }
+
+  if (setParts.length === 0) {
+    throw new Error('No valid columns provided for update.');
+  }
+
+  const setClause = setParts.join(', ');
+
+  const query = `UPDATE kabuhayan_db.members SET ${setClause} WHERE id = ?`;
+
+  values.push(id);
+
+  const [result] = await db.execute(query, values);
 
   return { affectedRows: result.affectedRows };
 }

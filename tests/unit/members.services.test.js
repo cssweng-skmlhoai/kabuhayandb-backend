@@ -233,6 +233,7 @@ describe('Testing deleteMembers() functionalities', () => {
     const result = await MembersService.deleteMembers(id);
 
     //expect actual function logic to be correct
+
     expect(mockDB.execute).toHaveBeenCalledWith('DELETE FROM kabuhayan_db.members WHERE id = ?',[2]);
     expect(result).toBe(1);
 
