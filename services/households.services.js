@@ -100,8 +100,8 @@ export async function updateHouseholds(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateHouseholdMultiple(id, updates) {
-  const db = await getDB();
+export async function updateHouseholdMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
 
   const allowedColumns = [
     'condition_type',

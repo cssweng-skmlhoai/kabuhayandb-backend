@@ -72,8 +72,8 @@ export async function updateFamilies(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateFamiliesMultiple(id, updates) {
-  const db = await getDB();
+export async function updateFamiliesMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
 
   const allowedColumns = [
     'head_position',

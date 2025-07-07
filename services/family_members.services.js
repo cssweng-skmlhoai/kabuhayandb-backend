@@ -99,8 +99,8 @@ export async function updateFamilyMember(id, updates) {
 }
 
 // PUT '/family_members/:id'
-export async function updateFamilyMemberMultiple(id, updates) {
-  const db = await getDB();
+export async function updateFamilyMemberMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
 
   const allowedColumns = [
     'family_id',
@@ -110,7 +110,7 @@ export async function updateFamilyMemberMultiple(id, updates) {
     'birth_date',
     'age',
     'gender',
-    'relation_to_family',
+    'relation_to_member',
     'member_id',
     'educational_attainment',
   ];

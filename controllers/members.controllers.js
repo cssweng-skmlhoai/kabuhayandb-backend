@@ -105,7 +105,7 @@ export async function getMemberByName(req, res) {
 
 export async function updateMemberMultiple(req, res) {
   try {
-    const memberId = req.params;
+    const memberId = req.params.id;
     const updates = req.body;
 
     const result = await MembersService.updateMemberMultiple(memberId, updates);
@@ -117,6 +117,41 @@ export async function updateMemberMultiple(req, res) {
         .json({ success: true, affected_rows: result.affectedRows });
     }
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function getMemberInfoById(req, res) {
+  try {
+    const member_id = req.params.id;
+
+    const member = await MembersService.getMemberInfoById(member_id);
+
+    if (!member)
+      return res
+        .status(404)
+        .json({ message: `No member found with id: ${member_id}` });
+
+    res.status(200).json(member);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function updateMemberInfo(req, res) {
+  try {
+    const member_id = req.params.id;
+    const payload = req.body;
+
+    const result = await MembersService.updateMemberInfo(member_id, payload);
+
+    if (!result)
+      return res
+        .status(404)
+        .json({ message: `No member found with id: ${member_id}` });
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 }

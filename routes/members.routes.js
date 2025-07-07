@@ -3,6 +3,8 @@ import { Router } from 'express';
 
 const router = Router();
 
+router.get('/info/:id', MembersController.getMemberInfoById);
+router.put('/info/:id', MembersController.updateMemberInfo);
 router.get('/home', MembersController.getMembersHome);
 
 // generic id routes

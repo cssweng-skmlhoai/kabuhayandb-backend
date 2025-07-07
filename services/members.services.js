@@ -58,7 +58,10 @@ export async function getMemberInfoById(id) {
         (h.area + h.open_space_share) AS total,
         m.confirmity_signature,
         m.remarks,
-        f.id AS family_id
+        f.id AS family_id,
+        h.condition_type,
+        f.land_acquisition,
+        f.status_of_occupancy
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
@@ -96,9 +99,10 @@ export async function getMemberInfoById(id) {
 // PUT 'members/info/:id'
 export async function updateMemberInfo(id, payload) {
   const db = await getDB();
+  const conn = await db.getConnection();
   const { members, families, households, family_members } = payload;
 
-  const [rows] = await db.query(
+  const [rows] = await conn.query(
     `
     SELECT
       f.id AS family_id,
@@ -112,23 +116,27 @@ export async function updateMemberInfo(id, payload) {
   );
 
   const data = rows[0];
-  if (!data) return null;
+  if (!data) {
+    conn.release();
+    return null;
+  }
 
   const { family_id, household_id } = data;
 
   try {
-    await db.beginTransaction();
+    await conn.beginTransaction();
 
     if (Object.keys(members).length > 0) {
-      await updateMemberMultiple(id, members);
+      const member_results = await updateMemberMultiple(id, members, conn);
+      console.log(member_results);
     }
 
     if (Object.keys(families).length > 0) {
-      await updateFamiliesMultiple(family_id, families);
+      await updateFamiliesMultiple(family_id, families, conn);
     }
 
     if (Object.keys(households).length > 0) {
-      await updateHouseholdMultiple(household_id, households);
+      await updateHouseholdMultiple(household_id, households, conn);
     }
 
     if (Array.isArray(family_members)) {
@@ -142,15 +150,17 @@ export async function updateMemberInfo(id, payload) {
         }
 
         if (Object.keys(updates).length > 0) {
-          await updateFamilyMemberMultiple(family_member_id, updates);
+          await updateFamilyMemberMultiple(family_member_id, updates, conn);
         }
       }
     }
 
-    await db.commit();
+    await conn.commit();
+    conn.release();
     return { success: true };
   } catch (error) {
-    await db.rollback();
+    await conn.rollback();
+    conn.release();
     throw error;
   }
 }
@@ -235,7 +245,8 @@ export async function updateMembers(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
-    'is_admin',
+    'gender',
+    'contact_number',
   ];
 
   const keys = Object.keys(updates);
@@ -255,8 +266,8 @@ export async function updateMembers(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateMemberMultiple(id, updates) {
-  const db = await getDB();
+export async function updateMemberMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
 
   const allowedColumns = [
     'last_name',
@@ -266,6 +277,9 @@ export async function updateMemberMultiple(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
+    'gender',
+    'age',
+    'contact_number',
   ];
 
   const setParts = [];
