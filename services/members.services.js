@@ -102,7 +102,7 @@ export async function updateMemberInfo(id, payload) {
     `
     SELECT
       f.id AS family_id,
-      h.id AS household_id,
+      h.id AS household_id
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
