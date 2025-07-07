@@ -124,12 +124,15 @@ export async function getMemberInfoById(id) {
         m.remarks,
         f.id AS family_id,
         h.condition_type,
+        h.Meralco,
+        h.Maynilad,
+        h.Septic_Tank,
         f.land_acquisition,
         f.status_of_occupancy
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
-      WHERE m.id = 1
+      WHERE m.id = ?;
     `,
     [id]
   );
