@@ -124,6 +124,9 @@ export async function getMemberInfoById(id) {
         m.remarks,
         f.id AS family_id,
         h.condition_type,
+        h.Meralco,
+        h.Maynilad,
+        h.Septic_Tank,
         f.land_acquisition,
         f.status_of_occupancy
       FROM members m
