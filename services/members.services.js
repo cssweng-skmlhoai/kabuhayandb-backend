@@ -129,7 +129,7 @@ export async function getMemberInfoById(id) {
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
-      WHERE m.id = 1
+      WHERE m.id = ?;
     `,
     [id]
   );
