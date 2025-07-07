@@ -18,8 +18,8 @@ export async function getHouseholdById(id) {
 }
 
 // POST '/households'
-export async function createHouseholds(data) {
-  const db = await getDB();
+export async function createHouseholds(data, conn) {
+  const db = conn || (await getDB());
   const {
     condition_type,
     tct_no,
@@ -27,10 +27,9 @@ export async function createHouseholds(data) {
     lot_no,
     area,
     open_space_share,
-    Meralco,
-    Maynilad,
-    Septic_Tank,
-    dues_id,
+    meralco,
+    maynilad,
+    septic_tank,
   } = data;
   const values = [
     condition_type,
@@ -39,13 +38,12 @@ export async function createHouseholds(data) {
     lot_no,
     area,
     open_space_share,
-    Meralco,
-    Maynilad,
-    Septic_Tank,
-    dues_id,
+    meralco,
+    maynilad,
+    septic_tank,
   ];
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`, `dues_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -57,10 +55,9 @@ export async function createHouseholds(data) {
     lot_no,
     area,
     open_space_share,
-    Meralco,
-    Maynilad,
-    Septic_Tank,
-    dues_id,
+    meralco,
+    maynilad,
+    septic_tank,
   };
 
   return created_household;
@@ -80,7 +77,6 @@ export async function updateHouseholds(id, updates) {
     'Meralco',
     'Maynilad',
     'Septic_Tank',
-    'dues_id',
   ];
 
   const keys = Object.keys(updates);
@@ -100,8 +96,8 @@ export async function updateHouseholds(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateHouseholdMultiple(id, updates) {
-  const db = await getDB();
+export async function updateHouseholdMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
 
   const allowedColumns = [
     'condition_type',
@@ -113,7 +109,6 @@ export async function updateHouseholdMultiple(id, updates) {
     'Meralco',
     'Maynilad',
     'Septic_Tank',
-    'dues_id',
   ];
 
   const setParts = [];

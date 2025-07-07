@@ -19,18 +19,18 @@ export async function getFamilyMemberById(id) {
 }
 
 // POST '/family_members'
-export async function createFamilyMember(data) {
-  const db = await getDB();
+export async function createFamilyMember(data, conn) {
+  const db = conn || (await getDB());
   const {
     family_id,
     last_name,
     first_name,
     middle_name,
     birth_date,
-    age,
     gender,
-    relation_to_family,
+    relation_to_member,
     member_id,
+    educational_attainment,
   } = data;
   const values = [
     family_id,
@@ -38,14 +38,14 @@ export async function createFamilyMember(data) {
     first_name,
     middle_name,
     birth_date,
-    age,
     gender,
-    relation_to_family,
+    relation_to_member,
     member_id,
+    educational_attainment,
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.family_members (`family_id`,`last_name`, `first_name`, `middle_name`, `birth_date`, `age`, `gender`, `relation_to_family`, `member_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.family_members (`family_id`,`last_name`, `first_name`, `middle_name`, `birth_date`, `gender`, `relation_to_member`, `member_id`, `educational_attainment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -56,9 +56,8 @@ export async function createFamilyMember(data) {
     first_name,
     middle_name,
     birth_date,
-    age,
     gender,
-    relation_to_family,
+    relation_to_member,
     member_id,
   };
 
@@ -75,7 +74,6 @@ export async function updateFamilyMember(id, updates) {
     'first_name',
     'middle_name',
     'birth_date',
-    'age',
     'gender',
     'relation_to_family',
     'member_id',
@@ -94,6 +92,64 @@ export async function updateFamilyMember(id, updates) {
     `UPDATE kabuhayan_db.family_members SET \`${column}\` = ? WHERE id = ?`,
     [value, id]
   );
+
+  return { affectedRows: result.affectedRows };
+}
+
+// PUT '/family_members/:id'
+export async function updateFamilyMemberMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
+
+  const allowedColumns = [
+    'family_id',
+    'last_name',
+    'first_name',
+    'middle_name',
+    'birth_date',
+    'gender',
+    'relation_to_member',
+    'member_id',
+    'educational_attainment',
+  ];
+
+  const setParts = [];
+  const values = [];
+
+  for (const column in updates) {
+    if (allowedColumns.includes(column)) {
+      let value = updates[column];
+
+      if (column === 'birth_date') {
+        if (value === null || value === undefined) {
+          value = null;
+        } else if (typeof value === 'string') {
+          const parsed = new Date(value);
+          if (isNaN(parsed.getTime())) {
+            throw new Error(`Invalid date format for birth_date: ${value}`);
+          }
+          value = parsed;
+        } else if (!(value instanceof Date)) {
+          throw new Error(`Invalid type for birth_date`);
+        }
+      }
+
+      setParts.push(`\`${column}\` = ?`);
+      values.push(value);
+    } else {
+      throw new Error(`Attempted to update an unauthorized column: ${column}`);
+    }
+  }
+
+  if (setParts.length === 0) {
+    throw new Error('No valid columns provided for update.');
+  }
+
+  const setClause = setParts.join(', ');
+  const query = `UPDATE kabuhayan_db.family_members SET ${setClause} WHERE id = ?`;
+
+  values.push(id);
+
+  const [result] = await db.execute(query, values);
 
   return { affectedRows: result.affectedRows };
 }
