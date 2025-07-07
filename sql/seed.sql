@@ -1,6 +1,5 @@
 -- Sample Entries --
 
-
 -- Household Entries --
 INSERT INTO `households` (`id`, `condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES
 (1, 'Needs minor repair', 'TCT123456', 'Block 1', 101, NULL, 'Shared access to park', TRUE, TRUE, FALSE),
