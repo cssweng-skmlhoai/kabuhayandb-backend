@@ -150,9 +150,9 @@ describe('testing createHouseholds() functionalities', () => {
       lot_no: 2,
       area: 'img2.png',
       open_space_share: 'house is not fine',
-      meralco: false,
-      maynilad: false,
-      septic_tank: true,
+      Meralco: false,
+      Maynilad: false,
+      Septic_Tank: true,
     };
 
     //mock database functions
@@ -186,9 +186,9 @@ describe('testing createHouseholds() functionalities', () => {
       lot_no: 2,
       area: 'img2.png',
       open_space_share: 'house is not fine',
-      meralco: false,
-      maynilad: false,
-      septic_tank: true,
+      Meralco: false,
+      Maynilad: false,
+      Septic_Tank: true,
     });
   });
 });

@@ -27,9 +27,9 @@ export async function createHouseholds(data, conn) {
     lot_no,
     area,
     open_space_share,
-    meralco,
-    maynilad,
-    septic_tank,
+    Meralco,
+    Maynilad,
+    Septic_Tank,
   } = data;
   const values = [
     condition_type,
@@ -38,9 +38,9 @@ export async function createHouseholds(data, conn) {
     lot_no,
     area,
     open_space_share,
-    meralco,
-    maynilad,
-    septic_tank,
+    Meralco,
+    Maynilad,
+    Septic_Tank,
   ];
   const [rows] = await db.execute(
     'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -55,9 +55,9 @@ export async function createHouseholds(data, conn) {
     lot_no,
     area,
     open_space_share,
-    meralco,
-    maynilad,
-    septic_tank,
+    Meralco,
+    Maynilad,
+    Septic_Tank,
   };
 
   return created_household;
