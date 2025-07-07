@@ -148,6 +148,7 @@ export async function getMemberInfoById(id) {
         first_name,
         middle_name,
         relation_to_member AS relation,
+        birth_date,
         TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) AS age,
         gender,
         educational_attainment
