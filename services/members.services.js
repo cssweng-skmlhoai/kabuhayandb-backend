@@ -1,4 +1,7 @@
 import { getDB } from '../config/connect.js';
+import { updateFamiliesMultiple } from './families.services.js';
+import { updateFamilyMemberMultiple } from './family_members.services.js';
+import { updateHouseholdMultiple } from './households.services.js';
 
 // GET '/members'
 export async function getMembers() {
@@ -33,8 +36,8 @@ export async function getMembersHome() {
   return members;
 }
 
-// GET '/members/info'
-export async function getMemberInfoByName(id) {
+// GET '/members/info/:id'
+export async function getMemberInfoById(id) {
   const db = await getDB();
   const [members] = await db.query(
     `
@@ -90,6 +93,69 @@ export async function getMemberInfoByName(id) {
   };
 }
 
+// PUT 'members/info/:id'
+export async function updateMemberInfo(id, payload) {
+  const db = await getDB();
+  const { members, families, households, family_members } = payload;
+
+  const [rows] = await db.query(
+    `
+    SELECT
+      f.id AS family_id,
+      h.id AS household_id,
+      FROM members m
+      JOIN families f ON m.family_id = f.id
+      JOIN households h ON f.household_id = h.id
+      WHERE m.id = ?
+  `,
+    [id]
+  );
+
+  const data = rows[0];
+  if (!data) return null;
+
+  const { family_id, household_id } = data;
+
+  try {
+    await db.beginTransaction();
+
+    if (Object.keys(members).length > 0) {
+      await updateMemberMultiple(id, members);
+    }
+
+    if (Object.keys(families).length > 0) {
+      await updateFamiliesMultiple(family_id, families);
+    }
+
+    if (Object.keys(households).length > 0) {
+      await updateHouseholdMultiple(household_id, households);
+    }
+
+    if (Array.isArray(family_members)) {
+      for (const family_member of family_members) {
+        const { id: family_member_id, ...updates } = family_member;
+
+        if (!family_member_id) {
+          throw new Error(
+            'Each family member must have an "id" to be updated.'
+          );
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await updateFamilyMemberMultiple(family_member_id, updates);
+        }
+      }
+    }
+
+    await db.commit();
+    return { success: true };
+  } catch (error) {
+    await db.rollback();
+    throw error;
+  }
+}
+
+// GET 'members/home?name={name}'
 export async function getMembersHomeByName(name) {
   const db = await getDB();
 

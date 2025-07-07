@@ -98,6 +98,65 @@ export async function updateFamilyMember(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
+// PUT '/family_members/:id'
+export async function updateFamilyMemberMultiple(id, updates) {
+  const db = await getDB();
+
+  const allowedColumns = [
+    'family_id',
+    'last_name',
+    'first_name',
+    'middle_name',
+    'birth_date',
+    'age',
+    'gender',
+    'relation_to_family',
+    'member_id',
+    'educational_attainment',
+  ];
+
+  const setParts = [];
+  const values = [];
+
+  for (const column in updates) {
+    if (allowedColumns.includes(column)) {
+      let value = updates[column];
+
+      if (column === 'birth_date') {
+        if (value === null || value === undefined) {
+          value = null;
+        } else if (typeof value === 'string') {
+          const parsed = new Date(value);
+          if (isNaN(parsed.getTime())) {
+            throw new Error(`Invalid date format for birth_date: ${value}`);
+          }
+          value = parsed;
+        } else if (!(value instanceof Date)) {
+          throw new Error(`Invalid type for birth_date`);
+        }
+      }
+
+      setParts.push(`\`${column}\` = ?`);
+      values.push(value);
+    } else {
+      throw new Error(`Attempted to update an unauthorized column: ${column}`);
+    }
+  }
+
+  if (setParts.length === 0) {
+    throw new Error('No valid columns provided for update.');
+  }
+
+  const setClause = setParts.join(', ');
+  const query = `UPDATE kabuhayan_db.family_members SET ${setClause} WHERE id = ?`;
+
+  values.push(id);
+
+  const [result] = await db.execute(query, values);
+
+  return { affectedRows: result.affectedRows };
+}
+
 // DELETE '/members/:id'
 export async function deleteFamilyMembers(id) {
   const db = await getDB();
