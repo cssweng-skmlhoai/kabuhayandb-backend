@@ -33,6 +33,63 @@ export async function getMembersHome() {
   return members;
 }
 
+// GET '/members/info'
+export async function getMemberInfoByName(id) {
+  const db = await getDB();
+  const [members] = await db.query(
+    `
+      SELECT
+        m.id AS member_id,
+        m.last_name,
+        m.first_name,
+        m.middle_name,
+        m.birth_date,
+        TIMESTAMPDIFF(YEAR, m.birth_date, CURDATE()) AS age,
+        m.gender,
+        f.head_position as position,
+        m.contact_number,
+        h.tct_no,
+        h.block_no,
+        h.lot_no,
+        h.open_space_share,
+        (h.area + h.open_space_share) AS total,
+        m.confirmity_signature,
+        m.remarks,
+        f.id AS family_id
+      FROM members m
+      JOIN families f ON m.family_id = f.id
+      JOIN households h ON f.household_id = h.id
+      WHERE m.id = ?;
+    `,
+    [id]
+  );
+
+  const member = members[0];
+  if (!member) return null;
+
+  const [familyMembers] = await db.query(
+    `
+      SELECT
+        id,
+        last_name,
+        first_name,
+        middle_name,
+        relation_to_member AS relation,
+        age,
+        gender,
+        educational_attainment
+      FROM family_members
+      WHERE member_id = ?
+    `,
+    [id]
+  );
+
+  return {
+    ...member,
+    family_members: familyMembers,
+  };
+}
+
 export async function getMembersHomeByName(name) {
   const db = await getDB();
 
