@@ -83,7 +83,7 @@ CREATE TABLE `kabuhayan_db`.`family_members` (
   `member_id` INT NOT NULL, -- head --
   `educational_attainment` VARCHAR(120) NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`family_id`) REFERENCES `families` (`id`),
+  FOREIGN KEY (`family_id`) REFERENCES `families` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`member_id`) REFERENCES `members` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -102,7 +102,7 @@ CREATE TABLE `kabuhayan_db`.`dues` (
   `receipt_number` VARCHAR(50),
   `household_id` INT NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`household_id`) REFERENCES `households` (`id`)
+  FOREIGN KEY (`household_id`) REFERENCES `households` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `kabuhayan_db`.`credentials` (
