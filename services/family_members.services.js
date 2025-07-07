@@ -19,18 +19,18 @@ export async function getFamilyMemberById(id) {
 }
 
 // POST '/family_members'
-export async function createFamilyMember(data) {
-  const db = await getDB();
+export async function createFamilyMember(data, conn) {
+  const db = conn || (await getDB());
   const {
     family_id,
     last_name,
     first_name,
     middle_name,
     birth_date,
-    age,
     gender,
-    relation_to_family,
+    relation_to_member,
     member_id,
+    educational_attainment,
   } = data;
   const values = [
     family_id,
@@ -38,14 +38,14 @@ export async function createFamilyMember(data) {
     first_name,
     middle_name,
     birth_date,
-    age,
     gender,
-    relation_to_family,
+    relation_to_member,
     member_id,
+    educational_attainment,
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.family_members (`family_id`,`last_name`, `first_name`, `middle_name`, `birth_date`, `age`, `gender`, `relation_to_family`, `member_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.family_members (`family_id`,`last_name`, `first_name`, `middle_name`, `birth_date`, `gender`, `relation_to_member`, `member_id`, `educational_attainment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -56,9 +56,8 @@ export async function createFamilyMember(data) {
     first_name,
     middle_name,
     birth_date,
-    age,
     gender,
-    relation_to_family,
+    relation_to_member,
     member_id,
   };
 
@@ -75,7 +74,6 @@ export async function updateFamilyMember(id, updates) {
     'first_name',
     'middle_name',
     'birth_date',
-    'age',
     'gender',
     'relation_to_family',
     'member_id',
@@ -108,7 +106,6 @@ export async function updateFamilyMemberMultiple(id, updates, conn = null) {
     'first_name',
     'middle_name',
     'birth_date',
-    'age',
     'gender',
     'relation_to_member',
     'member_id',

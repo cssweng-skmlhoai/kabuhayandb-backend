@@ -1,7 +1,13 @@
 import { getDB } from '../config/connect.js';
-import { updateFamiliesMultiple } from './families.services.js';
-import { updateFamilyMemberMultiple } from './family_members.services.js';
-import { updateHouseholdMultiple } from './households.services.js';
+import { updateFamiliesMultiple, createFamilies } from './families.services.js';
+import {
+  updateFamilyMemberMultiple,
+  createFamilyMember,
+} from './family_members.services.js';
+import {
+  updateHouseholdMultiple,
+  createHouseholds,
+} from './households.services.js';
 
 // GET '/members'
 export async function getMembers() {
@@ -36,6 +42,64 @@ export async function getMembersHome() {
   return members;
 }
 
+// POST '/members/info'
+export async function createMemberInfo(data) {
+  const db = await getDB();
+  const conn = await db.getConnection();
+  const { members, families, households, family_members } = data;
+
+  try {
+    await conn.beginTransaction();
+
+    const household_data = await createHouseholds(households, conn);
+
+    const family_data = await createFamilies(
+      {
+        ...families,
+        household_id: household_data.id,
+      },
+      conn
+    );
+
+    const member_data = await createMembers(
+      {
+        ...members,
+        family_id: family_data.id,
+      },
+      conn
+    );
+
+    const created_family_members = [];
+    if (Array.isArray(family_members)) {
+      for (const fm of family_members) {
+        const created_fm = await createFamilyMember(
+          {
+            ...fm,
+            family_id: family_data.id,
+            member_id: member_data.id,
+          },
+          conn
+        );
+        created_family_members.push(created_fm);
+      }
+    }
+
+    await conn.commit();
+
+    return {
+      household_data,
+      family_data,
+      member_data,
+      family_members,
+    };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
 // GET '/members/info/:id'
 export async function getMemberInfoById(id) {
   const db = await getDB();
@@ -65,7 +129,7 @@ export async function getMemberInfoById(id) {
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
-      WHERE m.id = ?;
+      WHERE m.id = 1
     `,
     [id]
   );
@@ -156,12 +220,12 @@ export async function updateMemberInfo(id, payload) {
     }
 
     await conn.commit();
-    conn.release();
     return { success: true };
   } catch (error) {
     await conn.rollback();
-    conn.release();
     throw error;
+  } finally {
+    conn.release();
   }
 }
 
@@ -190,8 +254,8 @@ export async function getMembersHomeByName(name) {
 }
 
 // POST '/members'
-export async function createMembers(data) {
-  const db = await getDB();
+export async function createMembers(data, conn = null) {
+  const db = conn || (await getDB());
   const {
     last_name,
     first_name,
@@ -200,7 +264,8 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
-    is_admin,
+    contact_number,
+    gender,
   } = data;
   const values = [
     last_name,
@@ -210,11 +275,12 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
-    is_admin,
+    contact_number,
+    gender,
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`, `contact_number`, `gender`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -227,7 +293,8 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
-    is_admin,
+    contact_number,
+    gender,
   };
 
   return created_member;

@@ -6,6 +6,7 @@ const router = Router();
 router.get('/info/:id', MembersController.getMemberInfoById);
 router.put('/info/:id', MembersController.updateMemberInfo);
 router.get('/home', MembersController.getMembersHome);
+router.post('/info', MembersController.createMemberInfo);
 
 // generic id routes
 router.get('/:id', MembersController.getMembersById);

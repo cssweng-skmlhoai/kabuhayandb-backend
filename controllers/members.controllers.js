@@ -155,3 +155,15 @@ export async function updateMemberInfo(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function createMemberInfo(req, res) {
+  try {
+    const payload = req.body;
+
+    const result = await MembersService.createMemberInfo(payload);
+
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
