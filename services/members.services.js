@@ -3,6 +3,7 @@ import { updateFamiliesMultiple, createFamilies } from './families.services.js';
 import {
   updateFamilyMemberMultiple,
   createFamilyMember,
+  deleteFamilyMembers,
 } from './family_members.services.js';
 import {
   updateHouseholdMultiple,
@@ -194,30 +195,35 @@ export async function updateMemberInfo(id, payload) {
   try {
     await conn.beginTransaction();
 
-    if (Object.keys(members).length > 0) {
+    if (members && Object.keys(members).length > 0) {
       const member_results = await updateMemberMultiple(id, members, conn);
       console.log(member_results);
     }
 
-    if (Object.keys(families).length > 0) {
+    if (families && Object.keys(families).length > 0) {
       await updateFamiliesMultiple(family_id, families, conn);
     }
 
-    if (Object.keys(households).length > 0) {
+    if (households && Object.keys(households).length > 0) {
       await updateHouseholdMultiple(household_id, households, conn);
     }
 
-    if (Array.isArray(family_members)) {
+    if (family_members && Array.isArray(family_members)) {
       for (const family_member of family_members) {
-        const { id: family_member_id, ...updates } = family_member;
+        const { id: family_member_id, update, ...updates } = family_member;
 
         if (!family_member_id) {
-          throw new Error(
-            'Each family member must have an "id" to be updated.'
+          console.log({ ...updates, family_id, id });
+          await createFamilyMember(
+            { ...updates, family_id, member_id: id },
+            conn
           );
+          continue;
         }
 
-        if (Object.keys(updates).length > 0) {
+        if (update === false && family_member_id) {
+          await deleteFamilyMembers(family_member_id, conn);
+        } else if (Object.keys(updates).length > 0) {
           await updateFamilyMemberMultiple(family_member_id, updates, conn);
         }
       }
