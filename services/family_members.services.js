@@ -155,8 +155,8 @@ export async function updateFamilyMemberMultiple(id, updates, conn = null) {
 }
 
 // DELETE '/members/:id'
-export async function deleteFamilyMembers(id) {
-  const db = await getDB();
+export async function deleteFamilyMembers(id, conn = null) {
+  const db = conn || (await getDB());
 
   const [result] = await db.execute(
     'DELETE FROM kabuhayan_db.family_members WHERE id = ?',
