@@ -197,7 +197,6 @@ export async function updateMemberInfo(id, payload) {
 
     if (members && Object.keys(members).length > 0) {
       const member_results = await updateMemberMultiple(id, members, conn);
-      console.log(member_results);
     }
 
     if (families && Object.keys(families).length > 0) {
