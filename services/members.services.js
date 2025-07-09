@@ -120,6 +120,7 @@ export async function getMemberInfoById(id) {
         h.block_no,
         h.lot_no,
         h.open_space_share,
+        h.area,
         (h.area + h.open_space_share) AS total,
         m.confirmity_signature,
         m.remarks,
@@ -196,10 +197,9 @@ export async function updateMemberInfo(id, payload) {
     await conn.beginTransaction();
 
     if (members && Object.keys(members).length > 0) {
-      const member_results = await updateMemberMultiple(id, members, conn);
-      console.log(member_results);
+      await updateMemberMultiple(id, members, conn);
     }
-
+    
     if (families && Object.keys(families).length > 0) {
       await updateFamiliesMultiple(family_id, families, conn);
     }
