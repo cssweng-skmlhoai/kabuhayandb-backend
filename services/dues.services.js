@@ -18,11 +18,11 @@ export async function getDuesById(id) {
 // POST '/dues'
 export async function createDues(data) {
   const db = await getDB();
-  const { due_date, amount, status, due_type, receipt_number } = data;
-  const values = [new Date(due_date), amount, status, due_type, receipt_number];
+  const { due_date, amount, status, due_type, receipt_number, household_id} = data;
+  const values = [new Date(due_date), amount, status, due_type, receipt_number, household_id];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -32,6 +32,7 @@ export async function createDues(data) {
     status,
     due_type,
     receipt_number,
+    household_id
   };
 
   return created_due;
@@ -47,6 +48,7 @@ export async function updateDues(id, updates) {
     'status',
     'due_type',
     'receipt_number',
+    'household_id'
   ];
 
   const keys = Object.keys(updates);

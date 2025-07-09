@@ -24,6 +24,9 @@ vi.mock('../../config/connect.js', () => ({//note: mocks the imported file durin
   }),
 }));
 
+// note: the mocked getDB will return the same fake database object not different one each time
+//note: Any functions that uses the mocked getDB, will all have the same mocked database object (mockDB === db)
+
 //note: .vi.fn() will mock a function -- when function is mocked, it doesn't run on any logic and returns 'undefined' unless you specify with '.mockResolvedValue()'
 //                                    -- Although it records how many times it was called, and what arguments it received
 //                              NOTE: -- WHEN WE BEGIN A test() on a function we want, IF THE TESTED FUNCTION depends on other functions and we MOCK THEM, THEN IT WILL USE THOSE MOCK FUNCTIONS INSTEAD INSTEAD OF THE ACTUAL FUNCTIONS
@@ -40,6 +43,8 @@ describe('Testing getDues() functionalities', () => {
     mockDB = await getDB(); //note the getDB() here uses the mocked version not the real one, 
                             //NOTE: ALSO NOTE WE SPECIFIED THAT THE RETURN OF mock getDB() is an object that contains our query() and execute() functions
                             //This means by storing return to a variable we could do mockDB.query() or mockDB.execute() to use the mock SQL functions
+
+                            //NOTE: 'db' variable in the function to be tested will refer to same object held by 'mockDB'
   });
 
   // An it()/test() function that serves as a single test case
@@ -47,15 +52,23 @@ describe('Testing getDues() functionalities', () => {
   it('should get all dues', async () => {
     // 1. Establish your mock data (imagine that this is in the database) -- assume the data that must be returned based on query
     const mock_dues = [
-      { id: 1, amount: 69, status: 'Unpaid' },
-      { id: 2, amount: 20.5, status: 'Paid' },
+      { id: 1, due_date: '2025-6-2', amount: 69.00, status: 'Unpaid', due_type: 'Taxes', receipt_number: 'R123', household_id: 1},
+      { id: 2, due_date: '2026-2-2', amount: 420.00, status: 'Paid', due_type: 'Taxes', receipt_number: 'R456', household_id: 2},
+      { id: 3, due_date: '2026-8-21', amount: 699.00, status: 'Unpaid', due_type: 'Penalties', receipt_number: 'R789', household_id: 3},
     ];
+
+    
 
     // 2. Mock (simulate) the database query(Like pretend that it works as you wanted)
     // This basically just says that "When mockDB.query is called, it should return the mock_dues established earlier"
     // Note: Our query() is already mocked but no return value, so during this test we assume its return value will be our mock_dues
     // Note: remember that mockDB is just our getDB() that has the mock query() function
     mockDB.query.mockResolvedValueOnce([mock_dues]);
+
+    //note: .query functions usuall returns [[{rowdata1}, {rowdata2},...], metadata], so we need to mimick the return function to be similar as this
+    // mock_dues = [{rowdata1}, {rowdata2},....]
+    // [mock_dues] == [[{rowdata1}, {rowdata2},...]](note: Our tested function doesn't use metadata so we don't include it but still need to return the same array dimension)
+    // also note: [dues] = [[{rowdata1}, {rowdata2},...]] --means-- dues = [{rowdata1}, {rowdata2},...] 
 
     // 3. Call the real function that we are testing
     //Note: inside the getDues() function in duration of this test case
@@ -89,13 +102,18 @@ describe('Testing getDuesById(id) functionalities', async () => {
 
   test('returns the due record based on ID if it exist', async () => {
     //mock database
-    const mock_due = { id: 1, amount: 69, status: 'Unpaid' };
+    const mock_due = { id: 2, due_date: '2026-2-2', amount: 420.00, status: 'Paid', due_type: 'Taxes', receipt_number: 'R456', household_id: 2}
 
     //mock data of function argument
     const id = 1;
 
     //Simulate query on what its supposed to return
     mockDB.query.mockResolvedValueOnce([[mock_due]]);
+
+    //note: .query functions usuall returns [[{rowdata1}, {rowdata2},...], metadata], so we need to mimick the return function to be similar as this
+    // mock_dues = {rowdata1}
+    // [[mock_dues]] == [[{rowdata1}]](note: Our tested function doesn't use metadata so we don't include it but still need to return the same array dimension)
+    // also note: [dues] = [[{rowdata1}]] --means-- dues = [{rowdata1}]
 
     //Call real function we are testing
 
@@ -115,12 +133,11 @@ describe('Testing getDuesById(id) functionalities', async () => {
   test('returns nothing if due cannot be found based on ID', async () => {
 
     //mock database
-    const mock_due = null;
 
     //test data of function argument
     const id = 45
 
-    mockDB.query.mockResolvedValueOnce([[mock_due]]);
+    mockDB.query.mockResolvedValueOnce([[]]);
 
     const result = await DuesService.getDuesById(id);
 
@@ -154,23 +171,28 @@ describe('testing createDues(data) functionalities', async() => {
       amount: 1000,
       status: 'Unpaid',
       due_type: 'Penalties',
-      receipt_number: 'AB-1241'
+      receipt_number: 'AB-1241',
+      household_id: 4
     };
 
     //Simulate the execute() function on what it supposed to return
-    //note: when you insert something in database, it returns an rows.insertID that represents the new ID created for the row
+    //note: when you insert something in database, it returns an rows.insertID object that represents the new ID created for the row
     //note: but since we're not handling the actual database, we fake the insertID return value
 
-    const fakeInsertID = 2;
+    const fakeInsertID = 4;
 
     mockDB.execute.mockResolvedValueOnce([{insertId: fakeInsertID}]);
+
+    //note: .execute functions usuall returns [{resultObject}, metadata], so we need to mimick the return function to be similar as this
+    // [{insertId: fakeInsertID}] == [{resultObject}](note: Our tested function doesn't use metadata so we don't include it but still need to return the same array dimension)
+    // also note: [result] = [{resultObject}] --means-- result = {resultObject}
 
     //Run the actual function with our specified mock functions and test data
     const result = await DuesService.createDues(data);
 
 
     //Expect if execute was called with correct SQL
-    expect(mockDB.execute).toHaveBeenCalledWith('INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`) VALUES (?, ?, ?, ?, ?)', expect.any(Array))//expect that the query statement was called, along with the 'data' array
+    expect(mockDB.execute).toHaveBeenCalledWith('INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)', expect.any(Array))//expect that the query statement was called, along with the 'data' array
 
     const [calledQuery, calledValues] = mockDB.execute.mock.calls[0]; // mockDB.execute.mock.calls[0] - Accesses the first call that was made by execute() function
                                                                      //note that in the tested function it has execute("SQL query", values[...])
@@ -182,6 +204,7 @@ describe('testing createDues(data) functionalities', async() => {
     expect(calledValues[2]).toBe('Unpaid'); //checks it passes the tested status to execute()
     expect(calledValues[3]).toBe('Penalties');
     expect(calledValues[4]).toBe('AB-1241');
+    expect(calledValues[5]).toBe(4);
 
     //Checks if it returns right
     expect(result).toEqual({
@@ -190,7 +213,8 @@ describe('testing createDues(data) functionalities', async() => {
       amount: 1000,
       status: 'Unpaid',
       due_type: 'Penalties',
-      receipt_number: 'AB-1241'
+      receipt_number: 'AB-1241',
+      household_id: 4
     });
 
   })
@@ -210,10 +234,13 @@ describe('testing updateDues() functionalities', () =>{
   });
   /**
    * In the updateDues() function -- id = row id, updates = An object that represents the column and new value(ex. {amount:1000})
-   * Object.keys() - What this does is it takes the 'updates' object (which you pass to the function) and extracts an array of its property names (keys).
+   * Object.keys() - What this does is it takes the 'updates' object (which you pass to the function) and extracts an array of its property names (keys). -- BASICALLY IT GETS THE KEY PART OF THE OBJECT(I.E. GETS THE COLUMN OF WHAT YOU'RE UPDATING)
    * ex. const keys = Object.keys({amount:1000})-- becomes 
    *            keys = [amount] - It creates an array of 'keys' that was inside the 'updates' object
    *            which means - keys.length = 1
+   * 
+   * note: if columns = 'amount'
+   *           updates[columns] is the same as updates.amount
    */ 
 
   //When testing updates

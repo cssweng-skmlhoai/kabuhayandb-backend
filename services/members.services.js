@@ -199,7 +199,7 @@ export async function updateMemberInfo(id, payload) {
     if (members && Object.keys(members).length > 0) {
       await updateMemberMultiple(id, members, conn);
     }
-
+    
     if (families && Object.keys(families).length > 0) {
       await updateFamiliesMultiple(family_id, families, conn);
     }

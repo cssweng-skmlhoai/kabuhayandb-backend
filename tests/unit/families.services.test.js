@@ -80,13 +80,12 @@ describe('Testing getFamilyById() functionalities', () => {
     test('Returns nothing if Family record is not found based on ID', async() => {
 
         //mock database
-        const mock_family = null
 
         //test data argument
         const id = 45
 
         //mock database functions
-        mockDB.query.mockResolvedValue([[mock_family]])
+        mockDB.query.mockResolvedValue([[]])
 
         //run actual function
         const result = await FamiliesService.getFamilyById(id)

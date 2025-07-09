@@ -92,13 +92,12 @@ describe('Testing getCredentialsById() functionalities', () => {
     test('Returns nothing if Credential record is not found based on ID', async() => {
 
         //mock database
-        const mock_credential = null
 
         //test data argument
         const id = 45
 
         //mock database functions
-        mockDB.query.mockResolvedValue([[mock_credential]])
+        mockDB.query.mockResolvedValue([[]])
 
         //run actual function
         const result = await CredentialsService.getCredentialsById(id)
@@ -143,13 +142,12 @@ describe('Testing getCredentialsByName() functionalities', () => {
     test('Returns nothing if Credential record is not found based on Name', async() => {
 
         //mock database
-        const mock_credential = null
 
         //test data argument
         const name = 'Pikamee'
 
         //mock database functions
-        mockDB.query.mockResolvedValue([[mock_credential]])
+        mockDB.query.mockResolvedValue([[]])
 
         //run actual function
         const result = await CredentialsService.getCredentialsByName(name)
@@ -198,11 +196,12 @@ describe('testing createCredentials() functionalities', () => {
 
         const[calledQuery, calledValues] = mockDB.execute.mock.calls[0];
         
+
+        expect(bcrypt.hash).toHaveBeenCalledWith('MyCurrentWaifu', expect.any(Number));
+
         expect(calledValues[0]).toBe(4);
         expect(calledValues[1]).toBe('Carthethyia');
         expect(calledValues[2]).toBe('KeepMyWaifuASecret');
-
-        expect(bcrypt.hash).toHaveBeenCalledWith('MyCurrentWaifu', expect.any(Number));
 
         expect(result).toEqual({
 
@@ -225,7 +224,7 @@ describe('Testing updateCredentials() functionalities', () => {
         mockDB = await getDB();
     });
 
-    test('Update Credential record`s column but password and return the affected row if you try to update only 1 column', async() => {
+    test('Update Credential record`s column except password column and return the affected row if you try to update only 1 column', async() => {
 
         //test data of function argument
         const id = 2
@@ -254,7 +253,7 @@ describe('Testing updateCredentials() functionalities', () => {
         await expect(CredentialsService.updateCredentials(id, updates)).rejects.toThrow('Only one valid column can be updated at a time.')
     });
 
-    test('Throws error if you try to update 2 or more columns', async() => {
+    test('Throws error if you try to update column that is not allowed', async() => {
 
         //test data of function argument
         const id = 2
@@ -264,7 +263,7 @@ describe('Testing updateCredentials() functionalities', () => {
         await expect(CredentialsService.updateCredentials(id, updates)).rejects.toThrow('Only one valid column can be updated at a time.')
     });
 
-    test('Updates credential record`s password aftere hashing ', async() => {
+    test('Updates credential record`s password and returns affectedRows', async() => {
 
         //test data of function argument
         const id = 2
@@ -362,10 +361,9 @@ describe('Testing verifyLogin() functionalities', ()=>{
         const password = 'A';
 
         //mock database
-        const mock_credential = null
 
         //mock database functions
-        mockDB.query.mockResolvedValueOnce([[mock_credential]]);
+        mockDB.query.mockResolvedValueOnce([[]]);
 
         //run actual function
         const result = await CredentialsService.verifyLogin(username, password);
