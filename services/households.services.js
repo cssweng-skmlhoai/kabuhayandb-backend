@@ -1,4 +1,5 @@
 import { getDB } from '../config/connect.js';
+import * as familyServices from './families.services.js';
 
 // GET '/households'
 export async function getHouseholds() {
@@ -101,13 +102,32 @@ export async function updateHouseholds(id, updates) {
 }
 
 // DELETE '/households/:id'
-export async function deleteHouseholds(id) {
+export async function deleteHousehold(id) {
   const db = await getDB();
+  let affectedRows = 0;
 
-  const [result] = await db.execute(
-    'DELETE FROM kabuhayan_db.households WHERE id = ?',
-    [id]
-  );
+  try {
+    const [duesResult] = await db.execute(
+      'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',
+      [id]
+    );
 
-  return result.affectedRows;
+    affectedRows += duesResult.affectedRows;
+    const family_id = await familyServices.getFamilyGivenHousehold(id);
+    const familyResult = await familyServices.deleteFamily(family_id);
+
+    affectedRows += familyResult.affectedRows;
+
+    const [householdResult] = await db.execute(
+      'DELETE FROM kabuhayan_db.households WHERE id = ?',
+      [id]
+    );
+
+    console.log(householdResult);
+    affectedRows += householdResult.affectedRows;
+
+    return affectedRows;
+  } catch (error) {
+    console.error('An error occurred:', error.message);
+  }
 }

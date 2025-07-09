@@ -17,6 +17,16 @@ export async function getFamilyById(id) {
   return family || null;
 }
 
+export async function getFamilyGivenHousehold(householdId) {
+  const db = await getDB();
+  const [families] = await db.query(
+    'SELECT * FROM families WHERE household_id = ?',
+    [householdId]
+  );
+  const family = families[0].id;
+  return family || null;
+}
+
 // POST '/families'
 export async function createFamilies(data) {
   const db = await getDB();
@@ -73,13 +83,22 @@ export async function updateFamilies(id, updates) {
 }
 
 // DELETE '/families/:id'
-export async function deleteFamilies(id) {
+export async function deleteFamily(id) {
   const db = await getDB();
+  let affectedRows = 0;
+  const [familyMembersResult] = await db.execute(
+    'DELETE FROM kabuhayan_db.family_members WHERE family_id = ?',
+    [id]
+  );
 
-  const [result] = await db.execute(
+  affectedRows += familyMembersResult.affectedRows;
+
+  const [familyResult] = await db.execute(
     'DELETE FROM kabuhayan_db.families WHERE id = ?',
     [id]
   );
 
-  return result.affectedRows;
+  affectedRows += familyResult.affectedRows;
+
+  return affectedRows;
 }

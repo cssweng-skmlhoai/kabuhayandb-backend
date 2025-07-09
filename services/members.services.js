@@ -1,4 +1,6 @@
 import { getDB } from '../config/connect.js';
+import * as familyServices from './families.services.js';
+import * as householdServices from './households.services.js';
 
 // GET '/members'
 export async function getMembers() {
@@ -19,7 +21,8 @@ export async function getMemberById(id) {
 export async function getMemberByName(first, last) {
   const db = await getDB();
   const [members] = await db.query(
-    'SELECT * FROM members WHERE first_name = ? AND last_name = ?'
+    'SELECT * FROM members WHERE first_name = ? AND last_name = ?',
+    [first][last]
   );
   const member = members[0];
   return member || null;
@@ -33,24 +36,27 @@ export async function createMembers(data) {
     first_name,
     middle_name,
     birth_date,
+    gender,
+    contact_number,
     confirmity_signature,
     remarks,
     family_id,
-    is_admin,
   } = data;
+
   const values = [
     last_name,
     first_name,
     middle_name,
     new Date(birth_date),
+    gender,
+    contact_number,
     confirmity_signature,
     remarks,
     family_id,
-    is_admin,
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`, `is_admin`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `gender`, `contact_number`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -63,7 +69,6 @@ export async function createMembers(data) {
     confirmity_signature,
     remarks,
     family_id,
-    is_admin,
   };
 
   return created_member;
@@ -81,7 +86,6 @@ export async function updateMembers(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
-    'is_admin',
   ];
 
   const keys = Object.keys(updates);
@@ -104,11 +108,25 @@ export async function updateMembers(id, updates) {
 // DELETE '/members/:id'
 export async function deleteMembers(id) {
   const db = await getDB();
+  let affectedRows = 0;
+  const memberToDelete = await getMemberById(id);
 
-  const [result] = await db.execute(
+  const householdID = await familyServices.getFamilyById(
+    memberToDelete.family_id
+  );
+  console.log(householdID);
+  const householdResult = await householdServices.deleteHousehold(
+    householdID.household_id
+  );
+
+  affectedRows += householdResult.affectedRows;
+
+  const [memberResult] = await db.execute(
     'DELETE FROM kabuhayan_db.members WHERE id = ?',
     [id]
   );
 
-  return result.affectedRows;
+  affectedRows += memberResult.affectedRows;
+
+  return affectedRows;
 }
