@@ -1,14 +1,6 @@
 import { getDB } from '../config/connect.js';
-import { updateFamiliesMultiple, createFamilies } from './families.services.js';
-import {
-  updateFamilyMemberMultiple,
-  createFamilyMember,
-  deleteFamilyMembers,
-} from './family_members.services.js';
-import {
-  updateHouseholdMultiple,
-  createHouseholds,
-} from './households.services.js';
+import * as familyServices from './families.services.js';
+import * as householdServices from './households.services.js';
 
 // GET '/members'
 export async function getMembers() {
@@ -25,8 +17,8 @@ export async function getMemberById(id) {
   return member || null;
 }
 
-// GET '/members/home'
-export async function getMembersHome() {
+// GET '/members/:first/:last'
+export async function getMemberByName(first, last) {
   const db = await getDB();
   const [members] = await db.query(`
     SELECT 
@@ -242,55 +234,43 @@ export async function updateMemberInfo(id, payload) {
 // GET 'members/home?name={name}'
 export async function getMembersHomeByName(name) {
   const db = await getDB();
-
   const [members] = await db.query(
-    `
-    SELECT 
-      m.id AS member_id,
-      CONCAT(m.first_name, ' ', m.last_name) AS fullname,
-      f.head_position,
-      h.block_no,
-      h.lot_no,
-      h.tct_no
-    FROM members m
-    JOIN families f ON m.family_id = f.id
-    JOIN households h ON f.household_id = h.id
-    WHERE CONCAT(m.first_name, ' ', m.last_name) LIKE ?;
-  `,
-    [`%${name}%`]
+    'SELECT * FROM members WHERE first_name = ? AND last_name = ?',
+    [first][last]
   );
   const member = members[0];
   return member || null;
 }
 
 // POST '/members'
-export async function createMembers(data, conn = null) {
-  const db = conn || (await getDB());
+export async function createMembers(data) {
+  const db = await getDB();
   const {
     last_name,
     first_name,
     middle_name,
     birth_date,
+    gender,
+    contact_number,
     confirmity_signature,
     remarks,
     family_id,
-    contact_number,
-    gender,
   } = data;
+
   const values = [
     last_name,
     first_name,
     middle_name,
     new Date(birth_date),
+    gender,
+    contact_number,
     confirmity_signature,
     remarks,
     family_id,
-    contact_number,
-    gender,
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `confirmity_signature`, `remarks`, `family_id`, `contact_number`, `gender`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.members (`last_name`, `first_name`, `middle_name`, `birth_date`, `gender`, `contact_number`, `confirmity_signature`, `remarks`, `family_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -303,8 +283,6 @@ export async function createMembers(data, conn = null) {
     confirmity_signature,
     remarks,
     family_id,
-    contact_number,
-    gender,
   };
 
   return created_member;
@@ -322,8 +300,6 @@ export async function updateMembers(id, updates) {
     'confirmity_signature',
     'remarks',
     'family_id',
-    'gender',
-    'contact_number',
   ];
 
   const keys = Object.keys(updates);
@@ -343,77 +319,28 @@ export async function updateMembers(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateMemberMultiple(id, updates, conn = null) {
-  const db = conn || (await getDB());
-
-  const allowedColumns = [
-    'last_name',
-    'first_name',
-    'middle_name',
-    'birth_date',
-    'confirmity_signature',
-    'remarks',
-    'family_id',
-    'gender',
-    'age',
-    'contact_number',
-  ];
-
-  const setParts = [];
-  const values = [];
-
-  for (const column in updates) {
-    if (allowedColumns.includes(column)) {
-      let valueToPush = updates[column];
-
-      if (column === 'birth_date') {
-        if (valueToPush === null || valueToPush === undefined) {
-          valueToPush = null;
-        } else if (typeof valueToPush === 'string') {
-          const parsedDate = new Date(valueToPush);
-          if (isNaN(parsedDate.getTime())) {
-            throw new Error(
-              `Invalid date format for birth_date: "${valueToPush}". Expected a valid date string (e.g., "YYYY-MM-DD") or a Date object.`
-            );
-          }
-          valueToPush = parsedDate;
-        } else if (!(valueToPush instanceof Date)) {
-          throw new Error(
-            `Invalid type for birth_date: expected Date object, string, null, or undefined.`
-          );
-        }
-      }
-
-      setParts.push(`\`${column}\` = ?`);
-      values.push(valueToPush);
-    } else {
-      throw new Error(`Attempted to update an unauthorized column: ${column}`);
-    }
-  }
-
-  if (setParts.length === 0) {
-    throw new Error('No valid columns provided for update.');
-  }
-
-  const setClause = setParts.join(', ');
-
-  const query = `UPDATE kabuhayan_db.members SET ${setClause} WHERE id = ?`;
-
-  values.push(id);
-
-  const [result] = await db.execute(query, values);
-
-  return { affectedRows: result.affectedRows };
-}
-
 // DELETE '/members/:id'
 export async function deleteMembers(id) {
   const db = await getDB();
+  let affectedRows = 0;
+  const memberToDelete = await getMemberById(id);
 
-  const [result] = await db.execute(
+  const householdID = await familyServices.getFamilyById(
+    memberToDelete.family_id
+  );
+  console.log(householdID);
+  const householdResult = await householdServices.deleteHousehold(
+    householdID.household_id
+  );
+
+  affectedRows += householdResult.affectedRows;
+
+  const [memberResult] = await db.execute(
     'DELETE FROM kabuhayan_db.members WHERE id = ?',
     [id]
   );
 
-  return result.affectedRows;
+  affectedRows += memberResult.affectedRows;
+
+  return affectedRows;
 }

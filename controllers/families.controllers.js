@@ -12,8 +12,8 @@ export async function getFamilies(req, res) {
 
 export async function getFamiliesById(req, res) {
   try {
-    const id = req.params.id;
-    const family = await FamiliesService.getFamilyById(id);
+    const { id } = req.params.id;
+    const family = await FamiliesService.getfamilyById(id);
 
     // checks if family exists
     if (family) res.status(200).json(family);
