@@ -199,7 +199,7 @@ export async function updateMemberInfo(id, payload) {
     if (members && Object.keys(members).length > 0) {
       await updateMemberMultiple(id, members, conn);
     }
-    
+
     if (families && Object.keys(families).length > 0) {
       await updateFamiliesMultiple(family_id, families, conn);
     }
@@ -213,7 +213,6 @@ export async function updateMemberInfo(id, payload) {
         const { id: family_member_id, update, ...updates } = family_member;
 
         if (!family_member_id) {
-          console.log({ ...updates, family_id, id });
           await createFamilyMember(
             { ...updates, family_id, member_id: id },
             conn
