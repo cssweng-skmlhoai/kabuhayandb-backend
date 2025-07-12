@@ -17,9 +17,19 @@ export async function getFamilyById(id) {
   return family || null;
 }
 
+export async function getFamilyGivenHousehold(householdId) {
+  const db = await getDB();
+  const [families] = await db.query(
+    'SELECT * FROM families WHERE household_id = ?',
+    [householdId]
+  );
+  const family = families[0].id;
+  return family || null;
+}
+
 // POST '/families'
-export async function createFamilies(data, conn) {
-  const db = conn || (await getDB());
+export async function createFamilies(data) {
+  const db = await getDB();
   const { head_position, land_acquisition, status_of_occupancy, household_id } =
     data;
   const values = [
@@ -72,51 +82,23 @@ export async function updateFamilies(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateFamiliesMultiple(id, updates, conn = null) {
-  const db = conn || (await getDB());
-
-  const allowedColumns = [
-    'head_position',
-    'land_acquisition',
-    'status_of_occupancy',
-    'household_id',
-  ];
-
-  const setParts = [];
-  const values = [];
-
-  for (const column in updates) {
-    if (allowedColumns.includes(column)) {
-      setParts.push(`\`${column}\` = ?`);
-      values.push(updates[column]);
-    } else {
-      throw new Error(`Attempted to update an unauthorized column: ${column}`);
-    }
-  }
-
-  if (setParts.length === 0) {
-    throw new Error('No valid columns provided for update.');
-  }
-
-  const setClause = setParts.join(', ');
-
-  const query = `UPDATE kabuhayan_db.families SET ${setClause} WHERE id = ?`;
-
-  values.push(id);
-
-  const [result] = await db.execute(query, values);
-
-  return { affectedRows: result.affectedRows };
-}
-
 // DELETE '/families/:id'
-export async function deleteFamilies(id) {
+export async function deleteFamily(id) {
   const db = await getDB();
+  let affectedRows = 0;
+  const [familyMembersResult] = await db.execute(
+    'DELETE FROM kabuhayan_db.family_members WHERE family_id = ?',
+    [id]
+  );
 
-  const [result] = await db.execute(
+  affectedRows += familyMembersResult.affectedRows;
+
+  const [familyResult] = await db.execute(
     'DELETE FROM kabuhayan_db.families WHERE id = ?',
     [id]
   );
 
-  return result.affectedRows;
+  affectedRows += familyResult.affectedRows;
+
+  return affectedRows;
 }

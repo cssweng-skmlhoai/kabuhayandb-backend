@@ -15,7 +15,7 @@ export async function getDuesById(id) {
   return due || null;
 }
 
-// GET 'dues/member/:id'
+// GET '/dues/member/:id'
 export async function getDuesByMemberId(id) {
   const db = await getDB();
   const [dues] = await db.query(
@@ -65,7 +65,7 @@ export async function createDues(data) {
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`) VALUES (?, ?, ?, ?, ?)',
     values
   );
 

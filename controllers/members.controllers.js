@@ -10,25 +10,10 @@ export async function getMembers(req, res) {
   }
 }
 
-export async function getMembersHome(req, res) {
-  try {
-    const name = req.query.name;
-    if (name) {
-      const member = await MembersService.getMembersHomeByName(name);
-      return res.status(200).json(member);
-    }
-
-    const members = await MembersService.getMembersHome();
-    res.status(200).json(members);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
 export async function getMembersById(req, res) {
   try {
-    const id = req.params.id;
-    const member = await MembersService.getMemberById(id);
+    const { id } = req.params.id;
+    const member = await MembersService.getmemberById(id);
 
     // checks if member exists
     if (member) res.status(200).json(member);
@@ -94,75 +79,12 @@ export async function getMemberByName(req, res) {
     if (result) {
       res.status(200).json(result);
     } else {
-      res.status(404).json({
-        message: `No member found with name: ${first_name} ${last_name}`,
-      });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function updateMemberMultiple(req, res) {
-  try {
-    const memberId = req.params.id;
-    const updates = req.body;
-
-    const result = await MembersService.updateMemberMultiple(memberId, updates);
-    if (result.affectedRows === 0) {
-      res.status(404).json({ message: `No member found with id: ${memberId}` });
-    } else {
       res
-        .status(200)
-        .json({ success: true, affected_rows: result.affectedRows });
+        .status(404)
+        .json({
+          message: `No member found with name: ${first_name} ${last_name}`,
+        });
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function getMemberInfoById(req, res) {
-  try {
-    const member_id = req.params.id;
-
-    const member = await MembersService.getMemberInfoById(member_id);
-
-    if (!member)
-      return res
-        .status(404)
-        .json({ message: `No member found with id: ${member_id}` });
-
-    res.status(200).json(member);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function updateMemberInfo(req, res) {
-  try {
-    const member_id = req.params.id;
-    const payload = req.body;
-
-    const result = await MembersService.updateMemberInfo(member_id, payload);
-
-    if (!result)
-      return res
-        .status(404)
-        .json({ message: `No member found with id: ${member_id}` });
-
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function createMemberInfo(req, res) {
-  try {
-    const payload = req.body;
-
-    const result = await MembersService.createMemberInfo(payload);
-
-    res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

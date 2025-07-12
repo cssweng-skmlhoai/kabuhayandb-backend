@@ -27,10 +27,12 @@ export async function getDuesByMemberId(req, res) {
   try {
     const id = req.params.id;
     const dues = await DuesService.getDuesByMemberId(id);
-
-    if (dues) res.status(200).json(dues);
+    
+    if (dues.dues) res.status(200).json(dues);
     else
-      res.status(404).json({ message: `No dues found for member id: ${id}` });
+      res
+        .status(404)
+        .json({ message: `No dues found for member with id: ${id}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
