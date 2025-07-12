@@ -15,11 +15,54 @@ export async function getDuesById(id) {
   return due || null;
 }
 
+// GET 'dues/member/:id'
+export async function getDuesByMemberId(id) {
+  const db = await getDB();
+  const [dues] = await db.query(
+    `
+      SELECT 
+        d.*
+        FROM dues d
+        JOIN households h ON d.household_id = h.id
+        JOIN families f ON f.household_id = h.id
+        JOIN members m ON m.family_id = f.id
+        WHERE m.id = ?
+    `,
+    [id]
+  );
+
+  const balances = {
+    monthly: 0,
+    taxes: 0,
+    amortization: 0,
+    penalties: 0,
+    others: 0,
+  };
+
+  for (const due of dues) {
+    if (!balances[due.due_type]) balances[due.due_type] = balances.others;
+    balances[due.due_type] += due.amount;
+  }
+
+  return {
+    dues,
+    balances,
+  };
+}
+
 // POST '/dues'
 export async function createDues(data) {
   const db = await getDB();
-  const { due_date, amount, status, due_type, receipt_number, household_id} = data;
-  const values = [new Date(due_date), amount, status, due_type, receipt_number, household_id];
+  const { due_date, amount, status, due_type, receipt_number, household_id } =
+    data;
+  const values = [
+    new Date(due_date),
+    amount,
+    status,
+    due_type,
+    receipt_number,
+    household_id,
+  ];
 
   const [rows] = await db.execute(
     'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)',
@@ -32,7 +75,7 @@ export async function createDues(data) {
     status,
     due_type,
     receipt_number,
-    household_id
+    household_id,
   };
 
   return created_due;
@@ -48,7 +91,7 @@ export async function updateDues(id, updates) {
     'status',
     'due_type',
     'receipt_number',
-    'household_id'
+    'household_id',
   ];
 
   const keys = Object.keys(updates);

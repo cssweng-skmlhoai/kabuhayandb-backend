@@ -13,12 +13,24 @@ export async function getDues(req, res) {
 export async function getDuesById(req, res) {
   try {
     const id = req.params.id;
-    console.log('Controller id: ' + id);
     const due = await DuesService.getDuesById(id);
 
     // checks if due exists
     if (due) res.status(200).json(due);
     else res.status(404).json({ message: `No due found with id: ${id}` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function getDuesByMemberId(req, res) {
+  try {
+    const id = req.params.id;
+    const dues = await DuesService.getDuesByMemberId(id);
+
+    if (dues) res.status(200).json(dues);
+    else
+      res.status(404).json({ message: `No dues found for member id: ${id}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
