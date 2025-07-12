@@ -3,6 +3,8 @@ import { Router } from 'express';
 
 const router = Router();
 
+router.get('/member/:id', DuesController.getDuesByMemberId);
+
 // generic id routes
 router.get('/:id', DuesController.getDuesById);
 router.delete('/:id', DuesController.deleteDues);

@@ -205,7 +205,6 @@ export async function updateMemberInfo(id, payload) {
         const { id: family_member_id, update, ...updates } = family_member;
 
         if (!family_member_id) {
-          console.log({ ...updates, family_id, id });
           await createFamilyMember(
             { ...updates, family_id, member_id: id },
             conn
