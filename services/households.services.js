@@ -1,4 +1,5 @@
 import { getDB } from '../config/connect.js';
+import * as familyServices from './families.services.js';
 
 // GET '/households'
 export async function getHouseholds() {
@@ -18,8 +19,8 @@ export async function getHouseholdById(id) {
 }
 
 // POST '/households'
-export async function createHouseholds(data, conn) {
-  const db = conn || (await getDB());
+export async function createHouseholds(data) {
+  const db = await getDB();
   const {
     condition_type,
     tct_no,
@@ -30,6 +31,7 @@ export async function createHouseholds(data, conn) {
     Meralco,
     Maynilad,
     Septic_Tank,
+    dues_id,
   } = data;
   const values = [
     condition_type,
@@ -41,9 +43,10 @@ export async function createHouseholds(data, conn) {
     Meralco,
     Maynilad,
     Septic_Tank,
+    dues_id,
   ];
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`, `dues_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -58,6 +61,7 @@ export async function createHouseholds(data, conn) {
     Meralco,
     Maynilad,
     Septic_Tank,
+    dues_id,
   };
 
   return created_household;
@@ -77,6 +81,7 @@ export async function updateHouseholds(id, updates) {
     'Meralco',
     'Maynilad',
     'Septic_Tank',
+    'dues_id',
   ];
 
   const keys = Object.keys(updates);
@@ -96,56 +101,33 @@ export async function updateHouseholds(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
-export async function updateHouseholdMultiple(id, updates, conn = null) {
-  const db = conn || (await getDB());
-
-  const allowedColumns = [
-    'condition_type',
-    'tct_no',
-    'block_no',
-    'lot_no',
-    'area',
-    'open_space_share',
-    'Meralco',
-    'Maynilad',
-    'Septic_Tank',
-  ];
-
-  const setParts = [];
-  const values = [];
-
-  for (const column in updates) {
-    if (allowedColumns.includes(column)) {
-      setParts.push(`\`${column}\` = ?`);
-      values.push(updates[column]);
-    } else {
-      throw new Error(`Attempted to update an unauthorized column: ${column}`);
-    }
-  }
-
-  if (setParts.length === 0) {
-    throw new Error('No valid columns provided for update.');
-  }
-
-  const setClause = setParts.join(', ');
-
-  const query = `UPDATE kabuhayan_db.households SET ${setClause} WHERE id = ?`;
-
-  values.push(id);
-
-  const [result] = await db.execute(query, values);
-
-  return { affectedRows: result.affectedRows };
-}
-
 // DELETE '/households/:id'
-export async function deleteHouseholds(id) {
+export async function deleteHousehold(id) {
   const db = await getDB();
+  let affectedRows = 0;
 
-  const [result] = await db.execute(
-    'DELETE FROM kabuhayan_db.households WHERE id = ?',
-    [id]
-  );
+  try {
+    const [duesResult] = await db.execute(
+      'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',
+      [id]
+    );
 
-  return result.affectedRows;
+    affectedRows += duesResult.affectedRows;
+    const family_id = await familyServices.getFamilyGivenHousehold(id);
+    const familyResult = await familyServices.deleteFamily(family_id);
+
+    affectedRows += familyResult.affectedRows;
+
+    const [householdResult] = await db.execute(
+      'DELETE FROM kabuhayan_db.households WHERE id = ?',
+      [id]
+    );
+
+    console.log(householdResult);
+    affectedRows += householdResult.affectedRows;
+
+    return affectedRows;
+  } catch (error) {
+    console.error('An error occurred:', error.message);
+  }
 }

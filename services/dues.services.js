@@ -65,7 +65,7 @@ export async function createDues(data) {
   ];
 
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`) VALUES (?, ?, ?, ?, ?)',
     values
   );
 
