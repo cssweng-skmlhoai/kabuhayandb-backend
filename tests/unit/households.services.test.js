@@ -260,7 +260,7 @@ describe('Testing deleteHouseholds() functionalities', () => {
     mockDB.execute.mockResolvedValue([{ affectedRows: 1 }]);
 
     //run actual functio
-    const result = await HouseholdServices.deleteHouseholds(id);
+    const result = await HouseholdServices.deleteHousehold(id);
 
     //expect actual function logic to be correct
     expect(mockDB.execute).toHaveBeenCalledWith(

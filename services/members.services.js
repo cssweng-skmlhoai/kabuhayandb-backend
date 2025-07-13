@@ -417,7 +417,6 @@ export async function deleteMembers(id) {
   let affectedRows = 0;
   const memberToDelete = await getMemberById(id);
   const householdID = await getFamilyById(memberToDelete.family_id);
-  console.log(householdID);
   const householdResult = await deleteHousehold(householdID.household_id);
 
   affectedRows += householdResult.affectedRows;
