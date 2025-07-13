@@ -32,12 +32,12 @@ export async function getCredentialsByName(username) {
 // POST '/credentials'
 export async function createCredentials(data) {
   const db = await getDB();
-  const { member_id, username, password } = data;
+  const { member_id, username, password, pfp } = data;
   const hashed_password = await bcrypt.hash(password, salt_rounds);
-  const values = [member_id, username, hashed_password];
+  const values = [member_id, username, hashed_password, pfp];
 
   const [result] = await db.execute(
-    'INSERT INTO kabuhayan_db.credentials (`member_id`, `username`, `password`) VALUES (?, ?, ?)',
+    'INSERT INTO kabuhayan_db.credentials (`member_id`, `username`, `password`, `pfp`) VALUES (?, ?, ?, ?)',
     values
   );
 
@@ -54,7 +54,7 @@ export async function createCredentials(data) {
 export async function updateCredentials(id, updates) {
   const db = await getDB();
 
-  const allowedColumns = ['member_id', 'username', 'password'];
+  const allowedColumns = ['member_id', 'username', 'password', 'pfp'];
   const keys = Object.keys(updates);
 
   if (keys.length !== 1 || !allowedColumns.includes(keys[0])) {
