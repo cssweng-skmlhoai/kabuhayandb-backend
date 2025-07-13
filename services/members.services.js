@@ -1,5 +1,9 @@
 import { getDB } from '../config/connect.js';
-import { updateFamiliesMultiple, createFamilies } from './families.services.js';
+import {
+  updateFamiliesMultiple,
+  createFamilies,
+  getFamilyById,
+} from './families.services.js';
 import {
   updateFamilyMemberMultiple,
   createFamilyMember,
@@ -8,6 +12,7 @@ import {
 import {
   updateHouseholdMultiple,
   createHouseholds,
+  deleteHousehold,
 } from './households.services.js';
 
 // GET '/members'
@@ -409,11 +414,18 @@ export async function updateMemberMultiple(id, updates, conn = null) {
 // DELETE '/members/:id'
 export async function deleteMembers(id) {
   const db = await getDB();
+  let affectedRows = 0;
+  const memberToDelete = await getMemberById(id);
+  const householdID = await getFamilyById(memberToDelete.family_id);
+  const householdResult = await deleteHousehold(householdID.household_id);
 
-  const [result] = await db.execute(
+  affectedRows += householdResult.affectedRows;
+
+  const [memberResult] = await db.execute(
     'DELETE FROM kabuhayan_db.members WHERE id = ?',
     [id]
   );
+  affectedRows += memberResult.affectedRows;
 
-  return result.affectedRows;
+  return affectedRows;
 }

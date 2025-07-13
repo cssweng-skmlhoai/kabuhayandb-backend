@@ -85,24 +85,6 @@ export async function deleteMembers(req, res) {
   }
 }
 
-export async function getMemberByName(req, res) {
-  try {
-    const first_name = req.params.first;
-    const last_name = req.params.last;
-
-    const result = await MembersService.getMemberByName(first_name, last_name);
-    if (result) {
-      res.status(200).json(result);
-    } else {
-      res.status(404).json({
-        message: `No member found with name: ${first_name} ${last_name}`,
-      });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
 export async function updateMemberMultiple(req, res) {
   try {
     const memberId = req.params.id;

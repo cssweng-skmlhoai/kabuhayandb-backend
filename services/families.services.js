@@ -110,13 +110,22 @@ export async function updateFamiliesMultiple(id, updates, conn = null) {
 }
 
 // DELETE '/families/:id'
-export async function deleteFamilies(id) {
+export async function deleteFamily(id) {
   const db = await getDB();
+  let affectedRows = 0;
+  const [familyMembersResult] = await db.execute(
+    'DELETE FROM kabuhayan_db.family_members WHERE family_id = ?',
+    [id]
+  );
 
-  const [result] = await db.execute(
+  affectedRows += familyMembersResult.affectedRows;
+
+  const [familyResult] = await db.execute(
     'DELETE FROM kabuhayan_db.families WHERE id = ?',
     [id]
   );
 
-  return result.affectedRows;
+  affectedRows += familyResult.affectedRows;
+
+  return affectedRows;
 }
