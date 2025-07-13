@@ -10,4 +10,6 @@ router.post(
   UploadController.uploadImgByMemberId
 );
 
+router.get('/member/:id', UploadController.getPfpByMemberId);
+
 export default router;
