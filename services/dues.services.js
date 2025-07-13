@@ -53,32 +53,55 @@ export async function getDuesByMemberId(id) {
 // POST '/dues'
 export async function createDues(data) {
   const db = await getDB();
-  const { due_date, amount, status, due_type, receipt_number, household_id } =
-    data;
-  const values = [
-    new Date(due_date),
-    amount,
-    status,
-    due_type,
-    receipt_number,
-    household_id,
-  ];
+  const { due_date, amount, status, due_type, member_id } = data;
 
-  const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)',
-    values
-  );
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
 
-  const created_due = {
-    id: rows.insertId,
-    amount,
-    status,
-    due_type,
-    receipt_number,
-    household_id,
-  };
+    const [rows1] = await conn.query(
+      `
+      SELECT
+      f.household_id
+      FROM members m
+      JOIN families f ON m.family_id = f.id
+      WHERE m.id = ?
+    `,
+      [member_id]
+    );
 
-  return created_due;
+    const household_id = rows1[0]?.household_id;
+    const values = [new Date(due_date), amount, status, due_type, household_id];
+
+    const [rows] = await conn.execute(
+      'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`) VALUES (?, ?, ?, ?, ?)',
+      values
+    );
+
+    const due_id = rows.insertId;
+    const receipt_number = due_id.toString().padStart(5, '0');
+
+    await conn.execute(
+      'UPDATE kabuhayan_db.dues SET receipt_number = ? WHERE id = ?',
+      [receipt_number, due_id]
+    );
+
+    await conn.commit();
+
+    return {
+      id: rows.insertId,
+      amount,
+      status,
+      due_type,
+      receipt_number,
+      household_id,
+    };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
 }
 
 // PUT '/dues/:id'
@@ -90,7 +113,6 @@ export async function updateDues(id, updates) {
     'amount',
     'status',
     'due_type',
-    'receipt_number',
     'household_id',
   ];
 
