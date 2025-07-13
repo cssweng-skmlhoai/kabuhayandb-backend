@@ -57,7 +57,7 @@ export async function updateHouseholds(req, res) {
 export async function deleteHouseholds(req, res) {
   try {
     const { id } = req.params;
-    const affected_rows = await HouseholdsService.deleteHouseholds(id);
+    const affected_rows = await HouseholdsService.deleteHousehold(id);
 
     // checks if household is found
     if (affected_rows === 0) {

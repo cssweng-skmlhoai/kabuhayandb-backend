@@ -57,7 +57,7 @@ export async function updateFamilies(req, res) {
 export async function deleteFamilies(req, res) {
   try {
     const { id } = req.params;
-    const affected_rows = await FamiliesService.deleteFamilies(id);
+    const affected_rows = await FamiliesService.deleteFamily(id);
 
     // checks if family is found
     if (affected_rows === 0) {
