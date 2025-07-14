@@ -50,6 +50,41 @@ export async function getDuesByMemberId(id) {
   };
 }
 
+// GET '/dues/report/:id'
+export async function getDuesReportByMemberId(id) {
+  const db = await getDB();
+  const today = new Date();
+  const month = today.getMonth();
+  const year = today.getFullYear();
+
+  // monthly collection efficiency
+  const [total_billed] = await db.query(
+    `
+    SELECT SUM(amount) AS total_billed
+    FROM dues
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    `,
+    [month, year]
+  );
+
+  const [total_collected] = await db.query(
+    `
+    SELECT SUM(amount) AS total_collected 
+    FROM dues
+    WHERE status = 'Paid' AND MONTH(due_date) = ? AND YEAR(due_data) = ?
+    `,
+    [month, year]
+  );
+
+  const efficiency = (total_collected / total_billed) * 100;
+
+  const collection_efficiency = {
+    total_billed: total_billed[0].total_billed || 0,
+    total_collected: total_collected[0].total_collected || 0,
+    efficiency: (total_collected / total_billed) * 100,
+  };
+}
+
 // POST '/dues'
 export async function createDues(data) {
   const db = await getDB();
