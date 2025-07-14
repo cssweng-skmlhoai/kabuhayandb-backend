@@ -21,6 +21,8 @@ const startServer = async () => {
       process.env.CORS_ORIGIN,
     ].filter(Boolean);
 
+    console.log(`Origin: ${process.env.CORS_ORIGIN}`);
+
     app.use(json());
     app.use(urlencoded({ extended: true }));
     app.use(
