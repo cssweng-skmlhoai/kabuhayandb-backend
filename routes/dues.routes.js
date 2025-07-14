@@ -1,7 +1,10 @@
 import * as DuesController from '../controllers/dues.controllers.js';
+import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 import { Router } from 'express';
 
 const router = Router();
+
+router.use(authenticateApiSecret);
 
 router.get('/report', DuesController.getDuesReport);
 router.get('/member/:id', DuesController.getDuesByMemberId);
