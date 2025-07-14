@@ -1,7 +1,10 @@
 import * as MembersController from '../controllers/members.controllers.js';
+import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 import { Router } from 'express';
 
 const router = Router();
+
+router.use(authenticateApiSecret);
 
 router.get('/info/:id', MembersController.getMemberInfoById);
 router.put('/info/:id', MembersController.updateMemberInfo);

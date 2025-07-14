@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import * as CredentialsController from '../controllers/credentials.controllers.js';
+import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 
 const router = Router();
+
+router.use(authenticateApiSecret());
 
 router.delete('/:id', CredentialsController.deleteCredentials);
 router.put('/:id', CredentialsController.updateCredentials);

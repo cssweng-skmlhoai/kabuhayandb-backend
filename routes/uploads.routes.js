@@ -1,8 +1,11 @@
 import * as UploadController from '../controllers/uploads.controllers.js';
 import { Router } from 'express';
+import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 import upload from '../middlewares/multer.middleware.js';
 
 const router = Router();
+
+router.use(authenticateApiSecret);
 
 router.post(
   '/member/:id',
