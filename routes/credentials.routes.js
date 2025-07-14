@@ -4,7 +4,7 @@ import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.use(authenticateApiSecret());
+router.use(authenticateApiSecret);
 
 router.delete('/:id', CredentialsController.deleteCredentials);
 router.put('/:id', CredentialsController.updateCredentials);
