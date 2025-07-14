@@ -23,14 +23,14 @@ const startServer = async () => {
 
     console.log(`Origin: ${process.env.CORS_ORIGIN}`);
 
-    app.use(json());
-    app.use(urlencoded({ extended: true }));
     app.use(
       cors({
         origin: allowedOrigins,
         credentials: true,
       })
     );
+    app.use(json());
+    app.use(urlencoded({ extended: true }));
 
     app.use(authenticateApiSecret);
 
