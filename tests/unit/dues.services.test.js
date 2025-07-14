@@ -2,6 +2,9 @@ import { describe, it, test, expect, vi, beforeEach } from 'vitest';
 import { getDB } from '../../config/connect.js';
 import * as DuesService from '../../services/dues.services.js';
 
+//const mockExecute = vi.fn();
+//const mockQuery = vi.fn;
+
 /*
  * This function mocks the database established in the config
  *
@@ -12,6 +15,7 @@ import * as DuesService from '../../services/dues.services.js';
  * - Records what arguments the function was called with
  *
  */
+/* Notes for old code
 vi.mock('../../config/connect.js', () => ({//note: mocks the imported file during test -- that means in actuality we don't use the imported file during the running of a test. Instead it uses the mocked version of the file declared in here
 
   // note: in our app, it uses the actual getDB() function that connects to our database during test runs
@@ -21,8 +25,27 @@ vi.mock('../../config/connect.js', () => ({//note: mocks the imported file durin
     // These replaces the SQL functions execute and query, we can use them to expect certain function calls
     execute: vi.fn(), 
     query: vi.fn(),
+
   }),
 }));
+*/
+
+vi.mock('../../config/connect.js', () => ({
+
+  getDB: vi.fn().mockResolvedValue({//Mock SQL queries of getDB
+      query: vi.fn(),
+      execute: vi.fn(),
+    getConnection: vi.fn().mockResolvedValue({//getDB also returns an object of getConnections() that has its own set of queries and executes
+      query: vi.fn(),//Mock those as well
+      execute: vi.fn(),
+      beginTransaction: vi.fn(), //And also the function unique to getConnections
+      commit: vi.fn(),
+      rollback: vi.fn(),
+      release: vi.fn()
+    })
+  })
+
+}))
 
 // note: the mocked getDB will return the same fake database object not different one each time
 //note: Any functions that uses the mocked getDB, will all have the same mocked database object (mockDB === db)
@@ -153,16 +176,19 @@ describe('Testing getDuesById(id) functionalities', async () => {
 describe('testing createDues(data) functionalities', async() => {
   
   let mockDB;
+  let mockConnection;
 
   beforeEach(async () => {
     vi.clearAllMocks()
     mockDB = await getDB();
+    mockConnection = await mockDB.getConnection();
 
   });
 
+  /* Old code for notes
   //When testing 'posts'
   test('Inserts due in the database and returns the due that was inserted', async() => {
-
+    
     //Instead of faking fetching database, we fake on inserting the database
     //Note: Create test data as the argument being passed to the function,
     //test data of function argument
@@ -218,6 +244,112 @@ describe('testing createDues(data) functionalities', async() => {
     });
 
   })
+  */
+
+  test('Inserts due in the database and returns the due that was inserted along with its receipt number and household_id', async() => {
+
+    //test data 
+    const data = {
+      due_date: '2025-07-29',
+      amount: 1000,
+      status: 'Unpaid',
+      due_type: 'Penalties',
+      member_id: 1
+    };
+
+    //Mock connection queries
+    mockConnection.query.mockResolvedValueOnce([[{household_id: 2}]]) //Mock the conn.query of SELECT
+    mockConnection.execute.mockResolvedValueOnce([{insertId: 2}])//Mock conn.execute of INSERT
+    mockConnection.execute.mockResolvedValueOnce([])//Mock conn.execute of UPDATE
+
+    //run actual function
+    const result = await DuesService.createDues(data)
+
+    //Expect function run properly
+    expect(mockConnection.beginTransaction).toHaveBeenCalled();
+
+    expect(mockConnection.query).toHaveBeenNthCalledWith(1, 
+    `
+      SELECT
+      f.household_id
+      FROM members m
+      JOIN families f ON m.family_id = f.id
+      WHERE m.id = ?
+    `, [1])
+
+    expect(mockConnection.execute).toHaveBeenNthCalledWith(1,'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`) VALUES (?, ?, ?, ?, ?)', expect.any(Array))
+
+    const [calledQuery, calledValues] = mockConnection.execute.mock.calls[0]; //the [0] is the first execute
+
+    expect(calledValues[0]).toBeInstanceOf(Date);
+    expect(calledValues[1]).toBe(1000);
+    expect(calledValues[2]).toBe('Unpaid');
+    expect(calledValues[3]).toBe('Penalties');
+    expect(calledValues[4]).toBe(2);
+
+    expect(mockConnection.execute).toHaveBeenNthCalledWith(2, 'UPDATE kabuhayan_db.dues SET receipt_number = ? WHERE id = ?', ['00002', 2])
+
+    expect(mockConnection.commit).toHaveBeenCalled();
+
+    expect(result).toEqual({
+
+      id: 2,
+      amount: 1000,
+      status: 'Unpaid',
+      due_type: 'Penalties',
+      receipt_number: '00002',
+      household_id: 2 
+    });
+
+    expect(mockConnection.release).toHaveBeenCalled();
+
+  })
+
+  test('Rolls back transaction and throw error if SQL fails', async() => {
+
+    //test data 
+    const data = {
+      due_date: '2025-07-29',
+      amount: 1000,
+      status: 'Unpaid',
+      due_type: 'Penalties',
+      member_id: 1
+    };
+
+    //Mock connection queries
+    mockConnection.query.mockResolvedValueOnce([[]]);
+    mockConnection.execute.mockRejectedValueOnce('INSERT ERROR: foreign key household_id cannot be null');
+
+    //run actual function
+    await expect(DuesService.createDues(data)).rejects.toThrow('INSERT ERROR: foreign key household_id cannot be null')
+
+    //Expect function to run properly
+    expect(mockConnection.beginTransaction).toHaveBeenCalled();
+    expect(mockConnection.query).toHaveBeenNthCalledWith(1, 
+    `
+      SELECT
+      f.household_id
+      FROM members m
+      JOIN families f ON m.family_id = f.id
+      WHERE m.id = ?
+    `, [1])
+
+    expect(mockConnection.execute).toHaveBeenNthCalledWith(1,'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`) VALUES (?, ?, ?, ?, ?)', expect.any(Array))
+
+    const [calledQuery, calledValues] = mockConnection.execute.mock.calls[0]; //the [0] is the first execute
+
+    expect(calledValues[0]).toBeInstanceOf(Date);
+    expect(calledValues[1]).toBe(1000);
+    expect(calledValues[2]).toBe('Unpaid');
+    expect(calledValues[3]).toBe('Penalties');
+    expect(calledValues[4]).toBeUndefined;
+
+    expect(mockConnection.rollback).toHaveBeenCalled();
+    expect(mockConnection.release).toHaveBeenCalled();
+
+
+
+  })
 
 
 
@@ -252,16 +384,16 @@ describe('testing updateDues() functionalities', () =>{
     const updates = {amount: 2000};
 
     //Simulate the execute() function on what's it supposed to return
-    mockDB.execute.mockResolvedValueOnce([{affectedRows:1}]); //the actual execute() funcion returns its entire metadata but function we are testing only use 'affectedRows' metadata so we fake a return of 'affectedRows'
-
+    mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}]); //the actual execute() funcion returns its entire metadata but function we are testing only use 'affectedRows' metadata so we fake a return of 'affectedRows'
     //Run the actual function with mock functions and test data
     const result = await DuesService.updateDues(id, updates);
 
+    
     //Expect if execute was called with correct SQL
     expect(mockDB.execute).toHaveBeenCalledWith('UPDATE kabuhayan_db.dues SET `amount` = ? WHERE id = ?', [2000, 1]);
 
     //Expect if function produces correct value
-    expect(result).toEqual({affectedRows:1 });
+    expect(result).toEqual({affectedRows: 1 });
 
   });
 

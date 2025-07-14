@@ -417,9 +417,9 @@ export async function deleteMembers(id) {
   let affectedRows = 0;
   const memberToDelete = await getMemberById(id);
   const householdID = await getFamilyById(memberToDelete.family_id);
-  const householdResult = await deleteHousehold(householdID.household_id);
+  const householdResult = await deleteHousehold(householdID.household_id);//ERROR: Based on how deleteHousehold returns, it returns an int not an object
 
-  affectedRows += householdResult.affectedRows;
+  affectedRows += householdResult.affectedRows;//Doing this will cause an undefined value
 
   const [memberResult] = await db.execute(
     'DELETE FROM kabuhayan_db.members WHERE id = ?',
