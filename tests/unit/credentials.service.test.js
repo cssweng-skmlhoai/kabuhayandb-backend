@@ -177,7 +177,8 @@ describe('testing createCredentials() functionalities', () => {
         const data = {
             member_id: 4, 
             username: 'Carthethyia', 
-            password: 'MyCurrentWaifu'
+            password: 'MyCurrentWaifu',
+            pfp: 'pfp.png'
         }
 
         //mock database functions
@@ -192,7 +193,7 @@ describe('testing createCredentials() functionalities', () => {
         const result = await CredentialsService.createCredentials(data);
 
         //expect actual function logic to be correct
-        expect(mockDB.execute).toHaveBeenCalledWith('INSERT INTO kabuhayan_db.credentials (`member_id`, `username`, `password`) VALUES (?, ?, ?)', expect.any(Array))
+        expect(mockDB.execute).toHaveBeenCalledWith('INSERT INTO kabuhayan_db.credentials (`member_id`, `username`, `password`, `pfp`) VALUES (?, ?, ?, ?)', expect.any(Array))
 
         const[calledQuery, calledValues] = mockDB.execute.mock.calls[0];
         
@@ -202,6 +203,7 @@ describe('testing createCredentials() functionalities', () => {
         expect(calledValues[0]).toBe(4);
         expect(calledValues[1]).toBe('Carthethyia');
         expect(calledValues[2]).toBe('KeepMyWaifuASecret');
+        expect(calledValues[3]).toBe('pfp.png');
 
         expect(result).toEqual({
 

@@ -151,10 +151,10 @@ export async function deleteHousehold(id) {
     );
 
     affectedRows += duesResult.affectedRows;
-    const family_id = await familyServices.getFamilyGivenHousehold(id);
-    const familyResult = await familyServices.deleteFamily(family_id);
+    const family_id = await familyServices.getFamilyGivenHousehold(id);//NOTE: THIS FUNCTION DOESN'T EXIST AS OF THE TIME I'M WRITING THIS
+    const familyResult = await familyServices.deleteFamily(family_id);//ERROR: deleteFamily() returns an int not an object
 
-    affectedRows += familyResult.affectedRows;
+    affectedRows += familyResult.affectedRows;//Doing this will result an undefined value
 
     const [householdResult] = await db.execute(
       'DELETE FROM kabuhayan_db.households WHERE id = ?',
