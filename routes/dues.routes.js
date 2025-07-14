@@ -3,6 +3,7 @@ import { Router } from 'express';
 
 const router = Router();
 
+router.get('/report', DuesController.getDuesReport);
 router.get('/member/:id', DuesController.getDuesByMemberId);
 
 // generic id routes

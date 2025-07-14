@@ -12,14 +12,16 @@ import * as DuesService from '../../services/dues.services.js';
  * - Records what arguments the function was called with
  *
  */
-vi.mock('../../config/connect.js', () => ({//note: mocks the imported file during test -- that means in actuality we don't use the imported file during the running of a test. Instead it uses the mocked version of the file declared in here
+vi.mock('../../config/connect.js', () => ({
+  //note: mocks the imported file during test -- that means in actuality we don't use the imported file during the running of a test. Instead it uses the mocked version of the file declared in here
 
   // note: in our app, it uses the actual getDB() function that connects to our database during test runs
   // this mocks the getDB() function (replaces the real getDB() function with a mock function)
-  getDB: vi.fn().mockResolvedValue({ //note: Our getDB() functions returns the database connection object that contains 'execute()' and 'query()' functions
+  getDB: vi.fn().mockResolvedValue({
+    //note: Our getDB() functions returns the database connection object that contains 'execute()' and 'query()' functions
     //So we need to mock a return object with those SQL functions, because the functions we are testing are using them and we need to verify it's being used correctly
     // These replaces the SQL functions execute and query, we can use them to expect certain function calls
-    execute: vi.fn(), 
+    execute: vi.fn(),
     query: vi.fn(),
   }),
 }));
@@ -38,13 +40,14 @@ describe('Testing getDues() functionalities', () => {
   let mockDB; //variable to hold mocked database connection
 
   // beforeEach ensures that the mockDB that we have is cleared of any previous mocks
-  beforeEach(async () => {//runs before every test
+  beforeEach(async () => {
+    //runs before every test
     vi.clearAllMocks(); //removes all previous mock data
-    mockDB = await getDB(); //note the getDB() here uses the mocked version not the real one, 
-                            //NOTE: ALSO NOTE WE SPECIFIED THAT THE RETURN OF mock getDB() is an object that contains our query() and execute() functions
-                            //This means by storing return to a variable we could do mockDB.query() or mockDB.execute() to use the mock SQL functions
+    mockDB = await getDB(); //note the getDB() here uses the mocked version not the real one,
+    //NOTE: ALSO NOTE WE SPECIFIED THAT THE RETURN OF mock getDB() is an object that contains our query() and execute() functions
+    //This means by storing return to a variable we could do mockDB.query() or mockDB.execute() to use the mock SQL functions
 
-                            //NOTE: 'db' variable in the function to be tested will refer to same object held by 'mockDB'
+    //NOTE: 'db' variable in the function to be tested will refer to same object held by 'mockDB'
   });
 
   // An it()/test() function that serves as a single test case
@@ -52,12 +55,34 @@ describe('Testing getDues() functionalities', () => {
   it('should get all dues', async () => {
     // 1. Establish your mock data (imagine that this is in the database) -- assume the data that must be returned based on query
     const mock_dues = [
-      { id: 1, due_date: '2025-6-2', amount: 69.00, status: 'Unpaid', due_type: 'Taxes', receipt_number: 'R123', household_id: 1},
-      { id: 2, due_date: '2026-2-2', amount: 420.00, status: 'Paid', due_type: 'Taxes', receipt_number: 'R456', household_id: 2},
-      { id: 3, due_date: '2026-8-21', amount: 699.00, status: 'Unpaid', due_type: 'Penalties', receipt_number: 'R789', household_id: 3},
+      {
+        id: 1,
+        due_date: '2025-6-2',
+        amount: 69.0,
+        status: 'Unpaid',
+        due_type: 'Taxes',
+        receipt_number: 'R123',
+        household_id: 1,
+      },
+      {
+        id: 2,
+        due_date: '2026-2-2',
+        amount: 420.0,
+        status: 'Paid',
+        due_type: 'Taxes',
+        receipt_number: 'R456',
+        household_id: 2,
+      },
+      {
+        id: 3,
+        due_date: '2026-8-21',
+        amount: 699.0,
+        status: 'Unpaid',
+        due_type: 'Penalties',
+        receipt_number: 'R789',
+        household_id: 3,
+      },
     ];
-
-    
 
     // 2. Mock (simulate) the database query(Like pretend that it works as you wanted)
     // This basically just says that "When mockDB.query is called, it should return the mock_dues established earlier"
@@ -68,7 +93,7 @@ describe('Testing getDues() functionalities', () => {
     //note: .query functions usuall returns [[{rowdata1}, {rowdata2},...], metadata], so we need to mimick the return function to be similar as this
     // mock_dues = [{rowdata1}, {rowdata2},....]
     // [mock_dues] == [[{rowdata1}, {rowdata2},...]](note: Our tested function doesn't use metadata so we don't include it but still need to return the same array dimension)
-    // also note: [dues] = [[{rowdata1}, {rowdata2},...]] --means-- dues = [{rowdata1}, {rowdata2},...] 
+    // also note: [dues] = [[{rowdata1}, {rowdata2},...]] --means-- dues = [{rowdata1}, {rowdata2},...]
 
     // 3. Call the real function that we are testing
     //Note: inside the getDues() function in duration of this test case
@@ -87,22 +112,27 @@ describe('Testing getDues() functionalities', () => {
     // This ensures that our expect runs correctly
     expect(result).toEqual(mock_dues);
   });
-
 });
 
 describe('Testing getDuesById(id) functionalities', async () => {
-
   let mockDB;
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
     mockDB = await getDB();
-
   });
 
   test('returns the due record based on ID if it exist', async () => {
     //mock database
-    const mock_due = { id: 2, due_date: '2026-2-2', amount: 420.00, status: 'Paid', due_type: 'Taxes', receipt_number: 'R456', household_id: 2}
+    const mock_due = {
+      id: 2,
+      due_date: '2026-2-2',
+      amount: 420.0,
+      status: 'Paid',
+      due_type: 'Taxes',
+      receipt_number: 'R456',
+      household_id: 2,
+    };
 
     //mock data of function argument
     const id = 1;
@@ -121,48 +151,43 @@ describe('Testing getDuesById(id) functionalities', async () => {
 
     //Test expected
 
-    expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM dues WHERE id = ?', [1]);
-    
+    expect(mockDB.query).toHaveBeenCalledWith(
+      'SELECT * FROM dues WHERE id = ?',
+      [1]
+    );
+
     expect(result).toEqual(mock_due);
-
-
-
   });
 
-  
   test('returns nothing if due cannot be found based on ID', async () => {
-
     //mock database
 
     //test data of function argument
-    const id = 45
+    const id = 45;
 
     mockDB.query.mockResolvedValueOnce([[]]);
 
     const result = await DuesService.getDuesById(id);
 
-    expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM dues WHERE id = ?', [45]);
+    expect(mockDB.query).toHaveBeenCalledWith(
+      'SELECT * FROM dues WHERE id = ?',
+      [45]
+    );
 
     expect(result).toEqual(null);
-
   });
-
 });
 
-
-describe('testing createDues(data) functionalities', async() => {
-  
+describe('testing createDues(data) functionalities', async () => {
   let mockDB;
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
     mockDB = await getDB();
-
   });
 
   //When testing 'posts'
-  test('Inserts due in the database and returns the due that was inserted', async() => {
-
+  test('Inserts due in the database and returns the due that was inserted', async () => {
     //Instead of faking fetching database, we fake on inserting the database
     //Note: Create test data as the argument being passed to the function,
     //test data of function argument
@@ -172,7 +197,7 @@ describe('testing createDues(data) functionalities', async() => {
       status: 'Unpaid',
       due_type: 'Penalties',
       receipt_number: 'AB-1241',
-      household_id: 4
+      household_id: 4,
     };
 
     //Simulate the execute() function on what it supposed to return
@@ -181,7 +206,7 @@ describe('testing createDues(data) functionalities', async() => {
 
     const fakeInsertID = 4;
 
-    mockDB.execute.mockResolvedValueOnce([{insertId: fakeInsertID}]);
+    mockDB.execute.mockResolvedValueOnce([{ insertId: fakeInsertID }]);
 
     //note: .execute functions usuall returns [{resultObject}, metadata], so we need to mimick the return function to be similar as this
     // [{insertId: fakeInsertID}] == [{resultObject}](note: Our tested function doesn't use metadata so we don't include it but still need to return the same array dimension)
@@ -190,14 +215,16 @@ describe('testing createDues(data) functionalities', async() => {
     //Run the actual function with our specified mock functions and test data
     const result = await DuesService.createDues(data);
 
-
     //Expect if execute was called with correct SQL
-    expect(mockDB.execute).toHaveBeenCalledWith('INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)', expect.any(Array))//expect that the query statement was called, along with the 'data' array
+    expect(mockDB.execute).toHaveBeenCalledWith(
+      'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`, `receipt_number`, `household_id`) VALUES (?, ?, ?, ?, ?, ?)',
+      expect.any(Array)
+    ); //expect that the query statement was called, along with the 'data' array
 
     const [calledQuery, calledValues] = mockDB.execute.mock.calls[0]; // mockDB.execute.mock.calls[0] - Accesses the first call that was made by execute() function
-                                                                     //note that in the tested function it has execute("SQL query", values[...])
-                                                                     //So calledQuery = 'SQL query'
-                                                                     // calledValues = [new Date(), amount, status,.....]
+    //note that in the tested function it has execute("SQL query", values[...])
+    //So calledQuery = 'SQL query'
+    // calledValues = [new Date(), amount, status,.....]
 
     //We need to check if values[] was passed correctly to execute() database
     expect(calledValues[1]).toBe(1000); //checks if it passes the tested amount to execute()
@@ -208,116 +235,105 @@ describe('testing createDues(data) functionalities', async() => {
 
     //Checks if it returns right
     expect(result).toEqual({
-
       id: fakeInsertID,
       amount: 1000,
       status: 'Unpaid',
       due_type: 'Penalties',
       receipt_number: 'AB-1241',
-      household_id: 4
+      household_id: 4,
     });
+  });
+});
 
-  })
-
-
-
-})
-
-describe('testing updateDues() functionalities', () =>{
-
+describe('testing updateDues() functionalities', () => {
   let mockDB;
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
     mockDB = await getDB();
-
   });
   /**
    * In the updateDues() function -- id = row id, updates = An object that represents the column and new value(ex. {amount:1000})
    * Object.keys() - What this does is it takes the 'updates' object (which you pass to the function) and extracts an array of its property names (keys). -- BASICALLY IT GETS THE KEY PART OF THE OBJECT(I.E. GETS THE COLUMN OF WHAT YOU'RE UPDATING)
-   * ex. const keys = Object.keys({amount:1000})-- becomes 
+   * ex. const keys = Object.keys({amount:1000})-- becomes
    *            keys = [amount] - It creates an array of 'keys' that was inside the 'updates' object
    *            which means - keys.length = 1
-   * 
+   *
    * note: if columns = 'amount'
    *           updates[columns] is the same as updates.amount
-   */ 
+   */
 
   //When testing updates
-  test('Update Due record`s column and return the affected row if you try to update only 1 column', async() => {
-
+  test('Update Due record`s column and return the affected row if you try to update only 1 column', async () => {
     //Note: Create test data as the argument being passed to the function,
     //mock data of function argument
     const id = 1;
-    const updates = {amount: 2000};
+    const updates = { amount: 2000 };
 
     //Simulate the execute() function on what's it supposed to return
-    mockDB.execute.mockResolvedValueOnce([{affectedRows:1}]); //the actual execute() funcion returns its entire metadata but function we are testing only use 'affectedRows' metadata so we fake a return of 'affectedRows'
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //the actual execute() funcion returns its entire metadata but function we are testing only use 'affectedRows' metadata so we fake a return of 'affectedRows'
 
     //Run the actual function with mock functions and test data
     const result = await DuesService.updateDues(id, updates);
 
     //Expect if execute was called with correct SQL
-    expect(mockDB.execute).toHaveBeenCalledWith('UPDATE kabuhayan_db.dues SET `amount` = ? WHERE id = ?', [2000, 1]);
+    expect(mockDB.execute).toHaveBeenCalledWith(
+      'UPDATE kabuhayan_db.dues SET `amount` = ? WHERE id = ?',
+      [2000, 1]
+    );
 
     //Expect if function produces correct value
-    expect(result).toEqual({affectedRows:1 });
-
+    expect(result).toEqual({ affectedRows: 1 });
   });
 
-  test('Throws error if you try to update 2 or more columns', async() => {
-
+  test('Throws error if you try to update 2 or more columns', async () => {
     //test data of function argument
     const id = 1;
-    const updates = {amount: 2000, status: 'Paid'};
-
+    const updates = { amount: 2000, status: 'Paid' };
 
     //run the function and expect it to reject and throw an error
-    await expect(DuesService.updateDues(id, updates)).rejects.toThrow('Only one valid column can be updated at a time.');
-
+    await expect(DuesService.updateDues(id, updates)).rejects.toThrow(
+      'Only one valid column can be updated at a time.'
+    );
   });
 
-  test('Throws error if you try to update a column that is not valid', async() => {
-    
+  test('Throws error if you try to update a column that is not valid', async () => {
     //test data of function argument
-    const id = 1
-    const updates = {Lolz: 'I AM GOING INSANE'};
+    const id = 1;
+    const updates = { Lolz: 'I AM GOING INSANE' };
 
     //run the function and expect it to reject and throw an error
-    await expect(DuesService.updateDues(id, updates)).rejects.toThrow('Only one valid column can be updated at a time.');
-
+    await expect(DuesService.updateDues(id, updates)).rejects.toThrow(
+      'Only one valid column can be updated at a time.'
+    );
   });
-
-
-})
+});
 
 describe('testing deleteDues() functionalities', () => {
-
   let mockDB;
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();
     mockDB = await getDB();
-
   });
 
-  test('Deletes a due based on given id and returns affectedRows', async() => {
-
+  test('Deletes a due based on given id and returns affectedRows', async () => {
     //test data of function argument
     const id = 3;
 
     //Simulate the execute() function on what's it supposed to return
-    mockDB.execute.mockResolvedValueOnce([{affectedRows:1}]); //the actual execute() funcion returns its entire metadata but function we are testing only use 'affectedRows' metadata so we fake a return of 'affectedRows'
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //the actual execute() funcion returns its entire metadata but function we are testing only use 'affectedRows' metadata so we fake a return of 'affectedRows'
 
     //run actual function
     const result = await DuesService.deleteDues(id);
 
     //Check if execute() uses correct SQL
-    expect(mockDB.execute).toHaveBeenCalledWith('DELETE FROM kabuhayan_db.dues WHERE id = ?',[3]);
+    expect(mockDB.execute).toHaveBeenCalledWith(
+      'DELETE FROM kabuhayan_db.dues WHERE id = ?',
+      [3]
+    );
 
     //Check if the tested function returned correctly
     expect(result).toBe(1);
-    
   });
-
 });

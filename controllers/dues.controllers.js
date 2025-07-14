@@ -35,6 +35,16 @@ export async function getDuesByMemberId(req, res) {
   }
 }
 
+export async function getDuesReport(req, res) {
+  try {
+    const dues_report = await DuesService.getDuesReport();
+
+    res.status(200).json(dues_report);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function createDues(req, res) {
   try {
     const data = req.body;
