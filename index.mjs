@@ -16,12 +16,16 @@ const startServer = async () => {
   try {
     await initDB();
     console.log('Database initialized');
+    const allowedOrigins = [
+      'http://localhost:5173',
+      process.env.CORS_ORIGIN,
+    ].filter(Boolean);
 
     app.use(json());
     app.use(urlencoded({ extended: true }));
     app.use(
       cors({
-        origin: process.env.CORS_ORIGIN || '*',
+        origin: allowedOrigins,
         credentials: true,
       })
     );
