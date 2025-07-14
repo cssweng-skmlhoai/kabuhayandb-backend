@@ -14,8 +14,8 @@ export async function getMembersHome(req, res) {
   try {
     const name = req.query.name;
     if (name) {
-      const member = await MembersService.getMembersHomeByName(name);
-      return res.status(200).json(member);
+      const members = await MembersService.getMembersHomeByName(name);
+      return res.status(200).json(members);
     }
 
     const members = await MembersService.getMembersHome();

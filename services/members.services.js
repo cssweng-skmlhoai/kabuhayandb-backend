@@ -264,8 +264,7 @@ export async function getMembersHomeByName(name) {
   `,
     [`%${name}%`]
   );
-  const member = members[0];
-  return member || null;
+  return members || null;
 }
 
 // POST '/members'
