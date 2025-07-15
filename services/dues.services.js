@@ -33,9 +33,17 @@ export async function getDuesByMemberId(id) {
     [id]
   );
 
+  const due_types = {
+    'Monthly Dues': 'monthly',
+    'Monthly Amortization': 'amortization',
+    Taxes: 'taxes',
+    Penalties: 'penalties',
+    Others: 'others',
+  };
+
   const balances = {
-    first_name: dues.first_name,
-    last_name: dues.last_name,
+    first_name: dues[0].first_name,
+    last_name: dues[0].last_name,
     monthly: 0,
     taxes: 0,
     amortization: 0,
@@ -44,8 +52,9 @@ export async function getDuesByMemberId(id) {
   };
 
   for (const due of dues) {
-    if (!balances[due.due_type]) balances[due.due_type] = balances.others;
-    balances[due.due_type] += due.amount;
+    const key = due_types[due.due_type] || 'others';
+    const amount = parseFloat(due.amount) || 0;
+    balances[key] += amount;
   }
 
   return {
@@ -213,6 +222,7 @@ export async function createDues(data) {
 
     return {
       id: rows.insertId,
+      due_date,
       amount,
       status,
       due_type,
