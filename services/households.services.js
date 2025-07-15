@@ -152,7 +152,7 @@ export async function deleteHousehold(id) {
 
     affectedRows += duesResult.affectedRows;
     const family_id = await familyServices.getFamilyGivenHousehold(id);//NOTE: THIS FUNCTION DOESN'T EXIST AS OF THE TIME I'M WRITING THIS
-    const familyResult = await familyServices.deleteFamily(family_id);//ERROR: deleteFamily() returns an int not an object
+    const familyResult = await familyServices.deleteFamily(family_id);  //ERROR: deleteFamily() returns an int not an object
 
     affectedRows += familyResult.affectedRows;//Doing this will result an undefined value
 
