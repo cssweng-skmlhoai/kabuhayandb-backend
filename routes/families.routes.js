@@ -1,7 +1,10 @@
 import * as FamiliesController from '../controllers/families.controllers.js';
+import { authenticateApiSecret } from '../middlewares/auth.middleware.js';
 import { Router } from 'express';
 
 const router = Router();
+
+router.use(authenticateApiSecret);
 
 // generic id routes
 router.get('/:id', FamiliesController.getFamiliesById);

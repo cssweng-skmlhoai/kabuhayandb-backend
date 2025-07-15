@@ -35,6 +35,16 @@ export async function getDuesByMemberId(req, res) {
   }
 }
 
+export async function getDuesReport(req, res) {
+  try {
+    const dues_report = await DuesService.getDuesReport();
+
+    res.status(200).json(dues_report);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function createDues(req, res) {
   try {
     const data = req.body;
@@ -51,7 +61,7 @@ export async function updateDues(req, res) {
     const { id } = req.params;
     const updates = req.body;
 
-    const result = await DuesService.updateDues(id, updates);
+    const result = await DuesService.updateDuesMultiple(id, updates);
 
     // checks if due is found given id
     if (result.affectedRows === 0) {

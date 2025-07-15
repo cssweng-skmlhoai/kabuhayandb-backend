@@ -54,7 +54,13 @@ export async function createCredentials(data) {
 export async function updateCredentials(id, updates) {
   const db = await getDB();
 
-  const allowedColumns = ['member_id', 'username', 'password', 'pfp'];
+  const allowedColumns = [
+    'member_id',
+    'username',
+    'password',
+    'pfp',
+    'is_admin',
+  ];
   const keys = Object.keys(updates);
 
   if (keys.length !== 1 || !allowedColumns.includes(keys[0])) {
