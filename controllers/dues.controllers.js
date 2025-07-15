@@ -61,7 +61,7 @@ export async function updateDues(req, res) {
     const { id } = req.params;
     const updates = req.body;
 
-    const result = await DuesService.updateDues(id, updates);
+    const result = await DuesService.updateDuesMultiple(id, updates);
 
     // checks if due is found given id
     if (result.affectedRows === 0) {
