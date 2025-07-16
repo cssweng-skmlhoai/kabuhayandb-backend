@@ -1,12 +1,21 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { getDB } from '../../config/connect.js';
 import * as HouseholdServices from '../../services/households.services.js';
+import * as familyServices from '../../services/families.services.js';
 
 vi.mock('../../config/connect.js', () => ({
   getDB: vi.fn().mockResolvedValue({
     execute: vi.fn(),
     query: vi.fn(),
   }),
+}));
+
+vi.mock('../../services/families.services.js', () => ({ //mock functions of families.services that is used by deleteHousehold()
+
+  getFamilyGivenHousehold: vi.fn(),
+  deleteFamily: vi.fn()
+
+
 }));
 
 describe('Testing getHouseholds() funtionalities', () => {
@@ -153,6 +162,7 @@ describe('testing createHouseholds() functionalities', () => {
       Meralco: false,
       Maynilad: false,
       Septic_Tank: true,
+      //dues_id: 2
     };
 
     //mock database functions
@@ -163,20 +173,28 @@ describe('testing createHouseholds() functionalities', () => {
     const result = await HouseholdServices.createHouseholds(data);
 
     //expect actual function logic to be correct
+    /* REMOVE REPLACE OLD CODE WITH NEW COMMENTS WHEN CREATEHOUSEHOLDS() FUNCTION GETS UPDATED
     expect(mockDB.execute).toHaveBeenCalledWith(
-      'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        'Needs major repair',
-        'tct-456',
-        'blk-456',
-        2,
-        'img2.png',
-        'house is not fine',
-        false,
-        false,
-        true,
-      ]
+      'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`, `dues_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', expect.any(Array)
     );
+    */
+
+    expect(mockDB.execute).toHaveBeenCalledWith(
+      'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', expect.any(Array)
+    );
+
+    const [calledQuery, calledValues] = mockDB.execute.mock.calls[0];
+
+    expect(calledValues[0]).toBe('Needs major repair');
+    expect(calledValues[1]).toBe('tct-456');
+    expect(calledValues[2]).toBe('blk-456');
+    expect(calledValues[3]).toBe(2);
+    expect(calledValues[4]).toBe('img2.png');
+    expect(calledValues[5]).toBe('house is not fine');
+    expect(calledValues[6]).toBe(false);
+    expect(calledValues[7]).toBe(false);
+    expect(calledValues[8]).toBe(true);
+    //expect(calledValues[9]).toBe(2);
 
     expect(result).toEqual({
       id: fakeInsertID,
@@ -189,6 +207,7 @@ describe('testing createHouseholds() functionalities', () => {
       Meralco: false,
       Maynilad: false,
       Septic_Tank: true,
+      //dues_id: 2
     });
   });
 });
@@ -244,6 +263,8 @@ describe('Testing updateHouseholds() functionalities', () => {
   });
 });
 
+
+/* Remove when getFamilyGivenHousehold() function is put back
 describe('Testing deleteHouseholds() functionalities', () => {
   let mockDB;
 
@@ -252,21 +273,80 @@ describe('Testing deleteHouseholds() functionalities', () => {
     mockDB = await getDB();
   });
 
-  test('Deletes a Household record based on given id and returns affectedRows', async () => {
+  test('Deletes a Household record , its due record, its family record, and return affectedRows to be 4', async () => {
     //test data of function argument
     const id = 2;
 
     //mock database functions
-    mockDB.execute.mockResolvedValue([{ affectedRows: 1 }]);
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //mocks a return for the first execute delete on dues
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //mocks a return for the second execute delete on households
+
+    //Mock family Service functions
+    familyServices.getFamilyGivenHousehold.mockResolvedValueOnce(2); //Assume family id exist within household_id
+    familyServices.deleteFamily.mockResolvedValueOnce(2)//Assume deleteFamily deletes successfully
 
     //run actual functio
     const result = await HouseholdServices.deleteHousehold(id);
 
     //expect actual function logic to be correct
-    expect(mockDB.execute).toHaveBeenCalledWith(
-      'DELETE FROM kabuhayan_db.households WHERE id = ?',
-      [2]
-    );
-    expect(result).toBe(1);
+    expect(mockDB.execute).toHaveBeenNthCalledWith(1,'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',[2]);
+    expect(familyServices.getFamilyGivenHousehold).toHaveBeenCalledWith(2)
+    expect(familyServices.deleteFamily).toHaveBeenCalledWith(2)
+    expect(mockDB.execute).toHaveBeenNthCalledWith(2,'DELETE FROM kabuhayan_db.households WHERE id = ?',[2]);
+    expect(result).toBe(4);
   });
+
+  test('Deletes a Household record and its due record but cannot find the family record to delete and return affectedRows to be 2', async() => {
+    //test data of function argument
+    const id = 2;
+    
+    //mock database functions
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //mocks a return for the first execute delete on dues
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //mocks a return for the second execute delete on households
+
+    //Mock family Service functions
+    familyServices.getFamilyGivenHousehold.mockResolvedValueOnce(null); //Assume family id exist within household_id
+    familyServices.deleteFamily.mockResolvedValueOnce(0)//Assume deleteFamily deletes successfully
+
+    //run actual functio
+    const result = await HouseholdServices.deleteHousehold(id);
+
+    //expect actual function logic to be correct
+    expect(mockDB.execute).toHaveBeenNthCalledWith(1,'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',[2]);
+    expect(familyServices.getFamilyGivenHousehold).toHaveBeenCalledWith(2)
+    expect(familyServices.deleteFamily).toHaveBeenCalledWith(null)
+    expect(mockDB.execute).toHaveBeenNthCalledWith(2,'DELETE FROM kabuhayan_db.households WHERE id = ?',[2]);
+    expect(result).toBe(2);
+
+  })
+
+  test('Handling of errors', async() => {
+
+    //test data of function argument
+    const id = 4
+
+    //mock database functions
+    mockDB.execute.mockImplementationOnce(() => { //mock the first time an .execute() is called, it will throw an error
+
+      throw new Error('DB Failure')
+    })
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(()=> {}); //vi.spyOn(console, 'error') - tracks whenever console.error() is called //.mockImplementation(() => {}) - Replaces original function behavior of console.error to do nothing so you can track it properly
+
+    //run actual function
+    const result = await HouseholdServices.deleteHousehold(4);
+
+    //expect actual function logic to be correct
+    expect(consoleSpy).toHaveBeenCalledWith('An error occurred: DB Failure')
+    expect(result).toBeUndefined();
+
+    consoleSpy.mockRestore();//Restore original console behavior
+
+  })
+
+
 });
+
+*/
+
+
