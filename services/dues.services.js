@@ -42,8 +42,6 @@ export async function getDuesByMemberId(id) {
   };
 
   const balances = {
-    first_name: dues[0].first_name,
-    last_name: dues[0].last_name,
     monthly: 0,
     taxes: 0,
     amortization: 0,
@@ -52,9 +50,11 @@ export async function getDuesByMemberId(id) {
   };
 
   for (const due of dues) {
-    const key = due_types[due.due_type] || 'others';
-    const amount = parseFloat(due.amount) || 0;
-    balances[key] += amount;
+    if (due.status === 'Unpaid') {
+      const key = due_types[due.due_type] || 'others';
+      const amount = parseFloat(due.amount) || 0;
+      balances[key] += amount;
+    }
   }
 
   return {
