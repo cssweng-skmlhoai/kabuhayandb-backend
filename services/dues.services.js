@@ -138,6 +138,7 @@ export async function getDuesReport() {
   const [dues_by_household] = await db.query(
     `
     SELECT
+    d.household_id,
     h.block_no,
     h.lot_no,
     COUNT(d.id) AS total_dues,
@@ -149,12 +150,13 @@ export async function getDuesReport() {
     FROM dues d
     JOIN households h ON d.household_id = h.id
     WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
-    GROUP BY h.block_no, h.lot_no
+    GROUP BY d.household_id, h.block_no, h.lot_no
     `,
     [month, year]
   );
 
   const summary_due_household = dues_by_household.map((row) => ({
+    household_id: row.household_id,
     block_no: row.block_no,
     lot_no: row.lot_no,
     total_dues: row.total_dues,
@@ -167,17 +169,27 @@ export async function getDuesReport() {
     `
     SELECT
     COUNT(*) AS total_unpaid_dues,
-    SUM(amount) AS total_unpaid_amount
+    SUM(amount) AS total_unpaid_amount,
+    COUNT(DISTINCT household_id) as distinct_households
     FROM dues
     WHERE status = 'Unpaid'
     `
   );
 
+  const total_unpaid_dues = {
+    total_unpaid_dues: unpaid_dues[0].total_unpaid_dues,
+    total_unpaid_amount: parseFloat(unpaid_dues[0].total_unpaid_amount),
+    affected_households: unpaid_dues[0].distinct_households,
+    average_unpaid_per_household: Math.round(
+      unpaid_dues[0].total_unpaid_amount / unpaid_dues[0].distinct_households
+    ),
+  };
+
   return {
     collection_efficiency,
     summary_due_type,
     summary_due_household,
-    total_unpaid_dues: unpaid_dues[0],
+    total_unpaid_dues,
   };
 }
 
