@@ -36,6 +36,22 @@ export async function getCredentialsById(req, res) {
   }
 }
 
+export async function getCredentialsByMemberId(req, res) {
+  try {
+    const id = req.params.id;
+    const credential = await CredentialsService.getCredentialsByMemberId(id);
+
+    if (credential) {
+      delete credential.password;
+      res.status(200).json(credential);
+    } else {
+      res.status(404).json({ message: `No credential found with id: ${id}` });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function createCredentials(req, res) {
   try {
     const data = req.body;

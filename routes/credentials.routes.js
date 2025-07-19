@@ -6,6 +6,8 @@ const router = Router();
 
 router.use(authenticateApiSecret);
 
+router.get('/member/:id', CredentialsController.getCredentialsByMemberId);
+
 router.delete('/:id', CredentialsController.deleteCredentials);
 router.put('/:id', CredentialsController.updateCredentials);
 router.get('/:id', CredentialsController.getCredentialsById);
