@@ -18,6 +18,7 @@ const startServer = async () => {
     console.log('Database initialized');
     const allowedOrigins = [
       'http://localhost:5173',
+      process.env.IP_SAFE,
       process.env.CORS_ORIGIN,
     ].filter(Boolean);
 

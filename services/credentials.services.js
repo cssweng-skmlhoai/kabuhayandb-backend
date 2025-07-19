@@ -18,12 +18,23 @@ export async function getCredentialsById(id) {
   return credential || null;
 }
 
-// GET 'credentials?username={name}'
+// GET '/credentials?username={name}'
 export async function getCredentialsByName(username) {
   const db = await getDB();
   const [users] = await db.query(
     'SELECT * FROM credentials WHERE username = ?',
     username
+  );
+  const user = users[0];
+  return user || null;
+}
+
+// GET '/credentials/member/:id'
+export async function getCredentialsByMemberId(id) {
+  const db = await getDB();
+  const [users] = await db.query(
+    'SELECT * FROM credentials WHERE member_id = ?',
+    [id]
   );
   const user = users[0];
   return user || null;
