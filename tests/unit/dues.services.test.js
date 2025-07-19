@@ -173,7 +173,433 @@ describe('Testing getDuesById(id) functionalities', async () => {
 });
 
 
-describe('testing createDues(data) functionalities', async() => {
+describe('testing getDuesByMemberId() functionalities', () => {
+
+  let mockDB;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockDB = await getDB()
+  })
+
+  test('Returns an array of due records and an object that sums up the total amount of each due type from each due record based on given member id ', async() => {
+
+    //mock database
+    const mock_dues = [
+      { id: 1, due_date: '2025-6-2', amount: 690.00, status: 'Unpaid', due_type: 'Taxes', receipt_number: 'R123', household_id: 1, first_name: 'John', last_name: 'Marston'},
+      { id: 1, due_date: '2026-2-2', amount: 420.00, status: 'Paid', due_type: 'Taxes', receipt_number: 'R456', household_id: 1, first_name: 'John', last_name: 'Marston'},
+      { id: 1, due_date: '2026-8-21', amount: 699.00, status: 'Unpaid', due_type: 'Penalties', receipt_number: 'R789', household_id: 1, first_name: 'John', last_name: 'Marston'},
+      { id: 1, due_date: '2026-8-21', amount: 0.00, status: 'Unpaid', due_type: 'others', receipt_number: 'R779', household_id: 1, first_name: 'John', last_name: 'Marston'}
+    ];
+
+    //test data
+    const id = 1
+
+    //mock database functions
+    mockDB.query.mockResolvedValue([mock_dues])
+
+    //run actual function
+    const result = await DuesService.getDuesByMemberId(id)
+
+    //Expect function to run properly
+    expect(mockDB.query).toHaveBeenCalledWith(`
+      SELECT 
+        d.*,
+        m.first_name,
+        m.last_name
+        FROM dues d
+        JOIN households h ON d.household_id = h.id
+        JOIN families f ON f.household_id = h.id
+        JOIN members m ON m.family_id = f.id
+        WHERE m.id = ?
+    `,
+    [1]
+    );
+
+    expect(result).toEqual({
+
+      dues: mock_dues,
+      balances: {
+        monthly: 0,
+        taxes: 690,
+        amortization: 0,
+        penalties: 699,
+        others: 0,
+      }
+    })
+    
+
+  })
+
+  test('Returns an empty array and an object that amounts 0 in all due type if no due record is found based on given member id', async() => {
+
+    //mock database
+    
+
+    //test data
+    const id = 1
+
+    //mock database functions
+    mockDB.query.mockResolvedValue([[]])
+
+    //run actual function
+    const result = await DuesService.getDuesByMemberId(id)
+
+    //Expect function to run properly
+    expect(mockDB.query).toHaveBeenCalledWith(`
+      SELECT 
+        d.*,
+        m.first_name,
+        m.last_name
+        FROM dues d
+        JOIN households h ON d.household_id = h.id
+        JOIN families f ON f.household_id = h.id
+        JOIN members m ON m.family_id = f.id
+        WHERE m.id = ?
+    `,
+    [1]
+    );
+
+    expect(result).toEqual({
+
+      dues: [],
+      balances: {
+        monthly: 0,
+        taxes: 0,
+        amortization: 0,
+        penalties: 0,
+        others: 0,
+      }
+    })
+
+  })
+
+
+
+})
+
+describe('testing getDuesReport() functionalities', () => {
+
+  let mockDB;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockDB = await getDB()
+  })
+
+  test('Returns a full report of dues for the next month when called', async() => {
+
+    //mock database
+    const mock_billed_result = [{total_billed: 2000}];
+    const mock_collected_result = [{total_collected: 1500}];
+
+    const mock_dues_by_type = [
+      { due_type: 'Monthly Dues', total_dues: 5, total_amount: 1000, paid_amount: 600, unpaid_amount: 400 },
+      { due_type: 'Taxes', total_dues: 3, total_amount: 690, paid_amount: 690, unpaid_amount: 0 },
+      { due_type: 'Penalties', total_dues: 2, total_amount: 700, paid_amount: 0, unpaid_amount: 700 }
+    ]
+
+    const mock_dues_by_household = [
+      { household_id: 1, block_no: 'blk-123', lot_no: '1', total_dues: 2, total_amount: 1000, payment_status: 'Fully Paid' },
+      { household_id: 2, block_no: 'blk-456', lot_no: '2', total_dues: 3, total_amount: 1300, payment_status: 'Unpaid' }
+    ]
+
+    const mock_total_unpaid_dues = [{
+      total_unpaid_dues: 3,
+      total_unpaid_amount: 1200,
+      distinct_households: 2
+    
+    }]
+
+    //mock database functions
+    mockDB.query.mockResolvedValueOnce([mock_billed_result]) //Mock billed result query
+    mockDB.query.mockResolvedValueOnce([mock_collected_result]) //Mock collected result query
+    mockDB.query.mockResolvedValueOnce([mock_dues_by_type]) //Mock dues by type query
+    mockDB.query.mockResolvedValueOnce([mock_dues_by_household])//Mock dues by household query
+    mockDB.query.mockResolvedValueOnce([mock_total_unpaid_dues]) //Mock total unpaid dues query
+
+    //Run actual function
+    const result = await DuesService.getDuesReport();
+
+    //Expect funtions to run properly
+    expect(mockDB.query).toHaveBeenNthCalledWith(1, 
+    `
+    SELECT SUM(amount) AS total_billed
+    FROM dues
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(2, 
+    `
+    SELECT SUM(amount) AS total_collected 
+    FROM dues
+    WHERE status = 'Paid' AND MONTH(due_date) = ? AND YEAR(due_date) = ?
+    `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(3, 
+    `
+    SELECT 
+    due_type,
+    COUNT(*) AS total_dues,
+    SUM(amount) AS total_amount,
+      SUM(CASE WHEN status = 'Paid' THEN amount ELSE 0 END) AS paid_amount,
+      SUM(CASE WHEN status = 'Unpaid' THEN amount ELSE 0 END) AS unpaid_amount
+    FROM dues
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    GROUP BY due_type
+  `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(4, 
+    `
+    SELECT
+    d.household_id,
+    h.block_no,
+    h.lot_no,
+    COUNT(d.id) AS total_dues,
+    SUM(d.amount) AS total_amount,
+    CASE
+      WHEN SUM(d.status = 'Unpaid') = COUNT(*) THEN 'Unpaid'
+      WHEN SUM(d.status = 'Paid') = COUNT(*) THEN 'Fully Paid'
+    END AS payment_status
+    FROM dues d
+    JOIN households h ON d.household_id = h.id
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    GROUP BY d.household_id, h.block_no, h.lot_no
+    `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(5, 
+    `
+    SELECT
+    COUNT(*) AS total_unpaid_dues,
+    SUM(amount) AS total_unpaid_amount,
+    COUNT(DISTINCT household_id) as distinct_households
+    FROM dues
+    WHERE status = 'Unpaid'
+    `)
+
+    expect(result).toEqual(
+      {
+      collection_efficiency: {
+        total_billed: 2000,
+        total_collected:1500,
+        efficiency: 75
+      },
+      summary_due_type: [
+        {
+          due_type: 'Monthly Amortization',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        },
+        {
+          due_type: 'Monthly Dues',
+          total_dues: 5,
+          total_amount: 1000,
+          paid_amount: 600,
+          unpaid_amount: 400
+        },
+        {
+          due_type: 'Taxes',
+          total_dues: 3,
+          total_amount: 690,
+          paid_amount: 690,
+          unpaid_amount: 0
+        },
+        {
+          due_type: 'Penalties',
+          total_dues: 2,
+          total_amount: 700,
+          paid_amount: 0,
+          unpaid_amount: 700
+        },
+        {
+          due_type: 'Others',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        }
+      ],
+      summary_due_household:[
+        {
+          household_id: 1,
+          block_no: 'blk-123',
+          lot_no: '1',
+          total_dues: 2,
+          total_amount: 1000,
+          payment_status: 'Fully Paid'
+        },
+        {
+          household_id: 2,
+          block_no: 'blk-456',
+          lot_no: '2',
+          total_dues: 3,
+          total_amount: 1300,
+          payment_status: 'Unpaid'
+        }
+      ],
+
+      total_unpaid_dues: {
+        total_unpaid_dues: 3,
+        total_unpaid_amount: 1200,
+        affected_households: 2,
+        average_unpaid_per_household: 600
+      }
+        
+      
+    })
+
+  })
+
+  test('Returns null in report if it cannot be found in database', async() => {
+
+    //mock database
+    const mock_billed_result = [{total_billed: null}];
+    const mock_collected_result = [{total_collected: null}];
+
+    const mock_total_unpaid_dues = [{
+      total_unpaid_dues: 0,
+      total_unpaid_amount: null,
+      distinct_households: 0
+    
+    }]
+    
+    //mock database functions
+    mockDB.query.mockResolvedValueOnce([mock_billed_result]) //Mock billed result query
+    mockDB.query.mockResolvedValueOnce([mock_collected_result]) //Mock collected result query
+    mockDB.query.mockResolvedValueOnce([[]]) //Mock dues by type query
+    mockDB.query.mockResolvedValueOnce([[]])//Mock dues by household query
+    mockDB.query.mockResolvedValueOnce([mock_total_unpaid_dues]) //Mock total unpaid dues query
+
+    //Run actual function
+    const result = await DuesService.getDuesReport();
+
+    //Expect funtions to run properly
+    expect(mockDB.query).toHaveBeenNthCalledWith(1, 
+    `
+    SELECT SUM(amount) AS total_billed
+    FROM dues
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(2, 
+    `
+    SELECT SUM(amount) AS total_collected 
+    FROM dues
+    WHERE status = 'Paid' AND MONTH(due_date) = ? AND YEAR(due_date) = ?
+    `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(3, 
+    `
+    SELECT 
+    due_type,
+    COUNT(*) AS total_dues,
+    SUM(amount) AS total_amount,
+      SUM(CASE WHEN status = 'Paid' THEN amount ELSE 0 END) AS paid_amount,
+      SUM(CASE WHEN status = 'Unpaid' THEN amount ELSE 0 END) AS unpaid_amount
+    FROM dues
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    GROUP BY due_type
+  `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(4, 
+    `
+    SELECT
+    d.household_id,
+    h.block_no,
+    h.lot_no,
+    COUNT(d.id) AS total_dues,
+    SUM(d.amount) AS total_amount,
+    CASE
+      WHEN SUM(d.status = 'Unpaid') = COUNT(*) THEN 'Unpaid'
+      WHEN SUM(d.status = 'Paid') = COUNT(*) THEN 'Fully Paid'
+    END AS payment_status
+    FROM dues d
+    JOIN households h ON d.household_id = h.id
+    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
+    GROUP BY d.household_id, h.block_no, h.lot_no
+    `,
+    [expect.any(Number), expect.any(Number)])
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(5, 
+    `
+    SELECT
+    COUNT(*) AS total_unpaid_dues,
+    SUM(amount) AS total_unpaid_amount,
+    COUNT(DISTINCT household_id) as distinct_households
+    FROM dues
+    WHERE status = 'Unpaid'
+    `)
+
+    expect(result).toEqual({
+      
+      collection_efficiency: {
+        total_billed: 0,
+        total_collected:0,
+        efficiency: null
+      },
+      summary_due_type: [
+        {
+          due_type: 'Monthly Amortization',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        },
+        {
+          due_type: 'Monthly Dues',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        },
+        {
+          due_type: 'Taxes',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        },
+        {
+          due_type: 'Penalties',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        },
+        {
+          due_type: 'Others',
+          total_dues: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          unpaid_amount: 0
+        }
+      ],
+      summary_due_household:[],
+
+      total_unpaid_dues: {
+        total_unpaid_dues: 0,
+        total_unpaid_amount: NaN,
+        affected_households: 0,
+        average_unpaid_per_household: NaN
+      }
+    })
+      
+
+  })
+  
+})
+
+
+describe('testing createDues(data) functionalities', () => {
   
   let mockDB;
   let mockConnection;
@@ -294,6 +720,7 @@ describe('testing createDues(data) functionalities', async() => {
     expect(result).toEqual({
 
       id: 2,
+      due_date: '2025-07-29',
       amount: 1000,
       status: 'Unpaid',
       due_type: 'Penalties',
@@ -347,13 +774,35 @@ describe('testing createDues(data) functionalities', async() => {
     expect(mockConnection.rollback).toHaveBeenCalled();
     expect(mockConnection.release).toHaveBeenCalled();
 
+      
 
+  })
+  //It for some reason does not cover the finally{} branch
+  //Somewhat unecessary but For the sake of 100% test coverage
+  test('Skips conn.release if conn was not established', async() => {
+
+    //test data 
+
+    //Mock connection queries
+     mockDB.getConnection.mockRejectedValueOnce(new Error('Failed to connect'));
+
+    //Expect function to run properly
+    await expect(DuesService.createDues({
+      due_date: '2025-07-29',
+      amount: 1000,
+      status: 'Unpaid',
+      due_type: 'Penalties',
+      member_id: 1
+  })).rejects.toThrow();
+
+  expect(mockConnection?.release).not.toHaveBeenCalled();
 
   })
 
 
+});
 
-})
+
 
 describe('testing updateDues() functionalities', () =>{
 
@@ -420,6 +869,114 @@ describe('testing updateDues() functionalities', () =>{
 
   });
 
+
+})
+
+describe('testing updateduesMultiple() functionalities', () => {
+
+  let mockDB;
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    mockDB = await getDB();
+
+  });
+
+    test('Updates multiple columns and returns the number of affected rows', async () => {
+      
+      //test data
+      const id = 1
+      const updates = {
+        amount: 2000, 
+        due_type: 'Taxes'
+
+      }
+    
+      //mock database functions
+      mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}])
+
+      //Run the function
+      const result = await DuesService.updateDuesMultiple(id, updates)
+
+      //Expect function to run properly
+      expect(mockDB.execute).toBeCalledWith('UPDATE kabuhayan_db.dues SET `amount` = ?, `due_type` = ? WHERE id = ?', [2000, 'Taxes', 1])
+
+      expect(result).toEqual({affectedRows: 1})
+
+    })
+
+    test('Updates multiple columns with Paid status', async () => {
+
+      //test data
+      const id = 1
+      const updates = {
+        amount: 2000, 
+        status: 'Paid',
+        due_type: 'Taxes'
+
+      }
+
+      //mock database functions
+      mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}])
+
+      //Run the function
+      const result = await DuesService.updateDuesMultiple(id, updates)
+
+      //Expect function to run properly
+      expect(mockDB.execute).toBeCalledWith('UPDATE kabuhayan_db.dues SET `amount` = ?, `status` = ?, `date_paid` = NOW(), `due_type` = ? WHERE id = ?', [2000, 'Paid', 'Taxes', 1])
+
+      expect(result).toEqual({affectedRows: 1})
+
+    })
+
+    test('Updates multiple columns with Unpaid status', async() => {
+
+      //test data
+      const id = 1
+      const updates = {
+        amount: 2000, 
+        status: 'Unpaid',
+        due_type: 'Taxes'
+
+      }
+
+      //mock database functions
+      mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}])
+
+      //Run the function
+      const result = await DuesService.updateDuesMultiple(id, updates)
+
+      //Expect function to run properly
+      expect(mockDB.execute).toBeCalledWith('UPDATE kabuhayan_db.dues SET `amount` = ?, `status` = ?, `date_paid` = NULL, `due_type` = ? WHERE id = ?', [2000, 'Unpaid', 'Taxes', 1])
+
+      expect(result).toEqual({affectedRows: 1})
+    })
+
+    test("Throw error for updating unauthorized column", async () => {
+      //test data
+      const id = 1
+      const updates = {
+        Heavy: 'is dead'
+
+      }
+
+      //Run the function
+      await expect(DuesService.updateDuesMultiple(id, updates)).rejects.toThrow(`Attempted to update an unauthorized column: Heavy`);
+
+
+    })
+
+    test('Throw error for trying to update no columns', async() => {
+
+      //test data
+      const id = 1
+      const updates = {
+      }
+
+      //Run the function
+      await expect(DuesService.updateDuesMultiple(id, updates)).rejects.toThrow(`No valid columns provided for update.`);
+
+    })
 
 })
 
