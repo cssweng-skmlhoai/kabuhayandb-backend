@@ -78,3 +78,16 @@ INSERT INTO `credentials` (`member_id`, `username`, `password`, `is_admin`) VALU
 (8, 'isabel.navarro', 'isabel321', 0),
 (9, 'tomas.castillo', 'castillo@pw', 0),
 (10, 'grace.ramos', 'graceSafe', 1);
+
+INSERT INTO `certifications` (`id`, `member_id`)
+VALUES
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 4),
+(5, 5),
+(6, 6),
+(7, 7),
+(8, 8),
+(9, 9),
+(10, 10);
