@@ -19,8 +19,8 @@ export async function getHouseholdById(id) {
 }
 
 // POST '/households'
-export async function createHouseholds(data) {
-  const db = await getDB();
+export async function createHouseholds(data, conn) {
+  const db = conn || (await getDB());
   const {
     condition_type,
     tct_no,
@@ -31,7 +31,6 @@ export async function createHouseholds(data) {
     Meralco,
     Maynilad,
     Septic_Tank,
-    dues_id,
   } = data;
   const values = [
     condition_type,
@@ -43,10 +42,9 @@ export async function createHouseholds(data) {
     Meralco,
     Maynilad,
     Septic_Tank,
-    dues_id,
   ];
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`, `dues_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     values
   );
 
@@ -61,7 +59,6 @@ export async function createHouseholds(data) {
     Meralco,
     Maynilad,
     Septic_Tank,
-    dues_id,
   };
 
   return created_household;
@@ -81,7 +78,6 @@ export async function updateHouseholds(id, updates) {
     'Meralco',
     'Maynilad',
     'Septic_Tank',
-    'dues_id',
   ];
 
   const keys = Object.keys(updates);
@@ -97,6 +93,48 @@ export async function updateHouseholds(id, updates) {
     `UPDATE kabuhayan_db.households SET \`${column}\` = ? WHERE id = ?`,
     [value, id]
   );
+
+  return { affectedRows: result.affectedRows };
+}
+
+export async function updateHouseholdMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
+
+  const allowedColumns = [
+    'condition_type',
+    'tct_no',
+    'block_no',
+    'lot_no',
+    'area',
+    'open_space_share',
+    'Meralco',
+    'Maynilad',
+    'Septic_Tank',
+  ];
+
+  const setParts = [];
+  const values = [];
+
+  for (const column in updates) {
+    if (allowedColumns.includes(column)) {
+      setParts.push(`\`${column}\` = ?`);
+      values.push(updates[column]);
+    } else {
+      throw new Error(`Attempted to update an unauthorized column: ${column}`);
+    }
+  }
+
+  if (setParts.length === 0) {
+    throw new Error('No valid columns provided for update.');
+  }
+
+  const setClause = setParts.join(', ');
+
+  const query = `UPDATE kabuhayan_db.households SET ${setClause} WHERE id = ?`;
+
+  values.push(id);
+
+  const [result] = await db.execute(query, values);
 
   return { affectedRows: result.affectedRows };
 }
