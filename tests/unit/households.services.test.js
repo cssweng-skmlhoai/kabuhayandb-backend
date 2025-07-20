@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+/*import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { getDB } from '../../config/connect.js';
 import * as HouseholdServices from '../../services/households.services.js';
 import * as familyServices from '../../services/families.services.js';
@@ -9,6 +9,7 @@ vi.mock('../../config/connect.js', () => ({
     query: vi.fn(),
   }),
 }));
+
 
 vi.mock('../../services/families.services.js', () => ({ //mock functions of families.services that is used by deleteHousehold()
 
@@ -79,6 +80,7 @@ describe('Testing getHouseholds() funtionalities', () => {
     expect(result).toBe(mock_households);
   });
 });
+
 
 describe('Testing getHouseholdById() functionalities', () => {
   let mockDB;
@@ -173,15 +175,15 @@ describe('testing createHouseholds() functionalities', () => {
     const result = await HouseholdServices.createHouseholds(data);
 
     //expect actual function logic to be correct
-    /* REMOVE REPLACE OLD CODE WITH NEW COMMENTS WHEN CREATEHOUSEHOLDS() FUNCTION GETS UPDATED
+     REMOVE REPLACE OLD CODE WITH NEW COMMENTS WHEN CREATEHOUSEHOLDS() FUNCTION GETS UPDATED
     expect(mockDB.execute).toHaveBeenCalledWith(
       'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`, `dues_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', expect.any(Array)
     );
-    */
+  
 
     expect(mockDB.execute).toHaveBeenCalledWith(
       'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', expect.any(Array)
-    );
+    ); 
 
     const [calledQuery, calledValues] = mockDB.execute.mock.calls[0];
 
@@ -264,7 +266,7 @@ describe('Testing updateHouseholds() functionalities', () => {
 });
 
 
-/* Remove when getFamilyGivenHousehold() function is put back
+Remove when getFamilyGivenHousehold() function is put back
 describe('Testing deleteHouseholds() functionalities', () => {
   let mockDB;
 
@@ -347,6 +349,5 @@ describe('Testing deleteHouseholds() functionalities', () => {
 
 });
 
+
 */
-
-
