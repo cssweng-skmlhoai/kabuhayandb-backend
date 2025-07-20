@@ -104,29 +104,29 @@ export async function updateHouseholds(id, updates) {
 // DELETE '/households/:id'
 export async function deleteHousehold(id) {
   const db = await getDB();
-  let affectedRows = 0;
 
+  let totalAffectedFamilyMembers = 0;
   try {
     const [duesResult] = await db.execute(
       'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',
       [id]
     );
-
-    affectedRows += duesResult.affectedRows;
-    const family_id = await familyServices.getFamilyGivenHousehold(id);
-    const familyResult = await familyServices.deleteFamily(family_id);
-
-    affectedRows += familyResult.affectedRows;
-
+    const family = await familyServices.getFamilyGivenHousehold(id);
+    if (family && family.id) {
+      const affectedMembers = await familyServices.deleteFamily(family.id);
+      totalAffectedFamilyMembers = affectedMembers;
+      console.log(
+        `Family (ID: ${family.id}) and its members deleted. Affected members: ${affectedMembers}`
+      );
+    } else {
+      console.log(`No family found for household ${id} to delete.`);
+    }
     const [householdResult] = await db.execute(
       'DELETE FROM kabuhayan_db.households WHERE id = ?',
       [id]
     );
-
-    console.log(householdResult);
-    affectedRows += householdResult.affectedRows;
-
-    return affectedRows;
+    console.log('Total Family Members Affected: ' + totalAffectedFamilyMembers);
+    return totalAffectedFamilyMembers;
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
