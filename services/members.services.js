@@ -339,6 +339,21 @@ export async function updateMembers(id, updates) {
   const column = keys[0];
   const value = updates[column];
 
+    if (column === 'birth_date') {
+    if (value === null || value === undefined) {
+      value = null;
+    } else if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (isNaN(parsed.getTime())) {
+        throw new Error(`Invalid date format for birth_date: ${value}`);
+      }
+      value = parsed;
+    } else if (!(value instanceof Date)) {
+      throw new Error(`Invalid type for birth_date`);
+    }
+  }
+
+  
   const [result] = await db.execute(
     `UPDATE kabuhayan_db.members SET \`${column}\` = ? WHERE id = ?`,
     [value, id]
@@ -417,8 +432,12 @@ export async function deleteMembers(id) {
   const memberToDelete = await getMemberById(id);
   const householdID = await getFamilyById(memberToDelete.family_id);
   const householdResult = await deleteHousehold(householdID.household_id); //ERROR: Based on how deleteHousehold returns, it returns an int not an object
+  affectedRows += householdResult; //Doing this will cause an undefined value
 
-  affectedRows += householdResult.affectedRows; //Doing this will cause an undefined value
+  const [result] = await db.execute(
+    'DELETE FROM kabuhayan_db.credentials WHERE id = ?',
+    [memberToDelete.id]
+  );
 
   const [memberResult] = await db.execute(
     'DELETE FROM kabuhayan_db.members WHERE id = ?',
