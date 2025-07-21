@@ -19,8 +19,8 @@ export async function getHouseholdById(id) {
 }
 
 // POST '/households'
-export async function createHouseholds(data) {
-  const db = await getDB();
+export async function createHouseholds(data, conn) {
+  const db = conn || (await getDB());
   const {
     condition_type,
     tct_no,
