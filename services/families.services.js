@@ -30,8 +30,8 @@ export async function getFamilyGivenHousehold(house_id) {
 }
 
 // POST '/families'
-export async function createFamilies(data) {
-  const db = await getDB();
+export async function createFamilies(data, conn) {
+  const db = conn || (await getDB());
   const { head_position, land_acquisition, status_of_occupancy, household_id } =
     data;
   const values = [
