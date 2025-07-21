@@ -956,6 +956,9 @@ describe('testing updateduesMultiple() functionalities', () => {
       //test data
       const id = 1
       const updates = {
+        amount: 2000, 
+        status: 'Unpaid',
+        due_type: 'Taxes',
         Heavy: 'is dead'
 
       }
