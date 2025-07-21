@@ -98,6 +98,48 @@ export async function updateHouseholds(id, updates) {
   return { affectedRows: result.affectedRows };
 }
 
+export async function updateHouseholdMultiple(id, updates, conn = null) {
+  const db = conn || (await getDB());
+
+  const allowedColumns = [
+    'condition_type',
+    'tct_no',
+    'block_no',
+    'lot_no',
+    'area',
+    'open_space_share',
+    'Meralco',
+    'Maynilad',
+    'Septic_Tank',
+  ];
+
+  const setParts = [];
+  const values = [];
+
+  for (const column in updates) {
+    if (allowedColumns.includes(column)) {
+      setParts.push(`\`${column}\` = ?`);
+      values.push(updates[column]);
+    } else {
+      throw new Error(`Attempted to update an unauthorized column: ${column}`);
+    }
+  }
+
+  if (setParts.length === 0) {
+    throw new Error('No valid columns provided for update.');
+  }
+
+  const setClause = setParts.join(', ');
+
+  const query = `UPDATE kabuhayan_db.households SET ${setClause} WHERE id = ?`;
+
+  values.push(id);
+
+  const [result] = await db.execute(query, values);
+
+  return { affectedRows: result.affectedRows };
+}
+
 // DELETE '/households/:id'
 export async function deleteHousehold(id) {
   const db = await getDB();
