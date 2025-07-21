@@ -97,7 +97,7 @@ describe('Testing getFamilyById() functionalities', () => {
     });
 });
 
-/* Please remove comment when this function gets back
+
 describe('testing getFamilyGivenHousehold() functionalities', () => {
 
     let mockDB;
@@ -111,7 +111,7 @@ describe('testing getFamilyGivenHousehold() functionalities', () => {
     test('Returns the Family record`s id based on household_id', async() => {
 
         //mock database
-        const mock_family = {id: 3, head_position: 'Uncle', land_acquisition: 'Expropriation', status_of_occupancy: 'Renter', household_id: 3};
+        const mock_family = {id: 2, head_position: 'Uncle', land_acquisition: 'Expropriation', status_of_occupancy: 'Renter', household_id: 3};
 
         //test data
         const household_id = 3;
@@ -123,8 +123,8 @@ describe('testing getFamilyGivenHousehold() functionalities', () => {
         const result = await FamiliesService.getFamilyGivenHousehold(household_id);
 
         //expect actual function logic to be correct
-        expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM families WHERE household_id = ?',[3])
-        expect(result).toEqual(3);
+        expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM Families WHERE household_id = ?',[3])
+        expect(result).toEqual(mock_family);
 
     })
 
@@ -142,12 +142,12 @@ describe('testing getFamilyGivenHousehold() functionalities', () => {
         const result = await FamiliesService.getFamilyGivenHousehold(household_id);
 
         //expect actual function logic to be correct
-        expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM families WHERE household_id = ?',[45])
+        expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM Families WHERE household_id = ?',[45])
         expect(result).toEqual(null);        
     })
 
 })
-*/
+
 
 describe('testing createFamilies() functionalities', () => {
 
@@ -207,6 +207,7 @@ describe('Testing updateFamilies() functionalities', () => {
 
         vi.clearAllMocks();
         mockDB = await getDB();
+        
     });
 
     test('Update Family record`s column and return the affected row if you try to update only 1 column', async() => {
@@ -252,6 +253,88 @@ describe('Testing updateFamilies() functionalities', () => {
 
 })
 
+describe('Testing updateFamiliesMultiple() functionalities', () => {
+
+    let mockDB;
+    let mockConn
+
+    beforeEach(async () => {
+
+        vi.clearAllMocks();
+        mockDB = await getDB();
+        mockConn = mockDB;
+    });
+
+     test('Updates multiple columns and returns the number of affected rows', async() => {
+
+        //test data
+        const id = 3;
+        const updates = {
+
+            land_acquisition: 'Direct Buying',
+            status_of_occupancy: 'Owner'
+        }
+
+        //mock database functions
+        mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}])
+
+        //Run actual function
+
+        const result = await FamiliesService.updateFamiliesMultiple(id, updates)
+
+        //Expect function to run properly
+        expect(mockDB.execute).toHaveBeenCalledWith('UPDATE kabuhayan_db.families SET `land_acquisition` = ?, `status_of_occupancy` = ? WHERE id = ?', ['Direct Buying', 'Owner', 3])
+        expect(result).toEqual({affectedRows: 1})
+     })
+
+     test("Throw error for updating unauthorized column", async() => {
+
+        //test data
+        const id = 3;
+        const updates = {
+            land_acquisition: 'Direct Buying',
+            status_of_occupancy: 'Owner',
+            Loan_Sharker: 'Pablo Escobar',
+        }
+
+        await expect(FamiliesService.updateFamiliesMultiple(id, updates)).rejects.toThrow(`Attempted to update an unauthorized column: Loan_Sharker`);
+     })
+
+     test('Throw error for trying to update no columns', async() => {
+
+        //test data
+        const id = 4
+        const updates = {
+        }
+
+        //Run the function
+        await expect(FamiliesService.updateFamiliesMultiple(id, updates)).rejects.toThrow(`No valid columns provided for update.`);
+
+     })
+     test('Updates multiple columns and returns the number of affected rows by using an existing connection to database', async() => {
+
+        //test data
+        const id = 3;
+        const updates = {
+
+            land_acquisition: 'Direct Buying',
+            status_of_occupancy: 'Owner'
+        }
+
+        //mock database functions
+        mockConn.execute.mockResolvedValueOnce([{affectedRows: 1}])
+
+        //Run actual function
+
+        const result = await FamiliesService.updateFamiliesMultiple(id, updates, mockConn)
+
+        //Expect function to run properly
+        expect(mockConn.execute).toHaveBeenCalledWith('UPDATE kabuhayan_db.families SET `land_acquisition` = ?, `status_of_occupancy` = ? WHERE id = ?', ['Direct Buying', 'Owner', 3])
+        expect(result).toEqual({affectedRows: 1})
+     })
+})
+     
+
 describe('Testing deleteFamily() functionalities', () => {
 
     let mockDB;
@@ -278,7 +361,7 @@ describe('Testing deleteFamily() functionalities', () => {
     expect(mockDB.execute).toHaveBeenNthCalledWith(2,'DELETE FROM kabuhayan_db.families WHERE id = ?', [2]) //Checks if second .execute query was called properly
 
     //expect actual function logic to be correct
-    expect(result).toBe(2);
+    expect(result).toBe(1);
 
     })
 

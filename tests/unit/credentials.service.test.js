@@ -159,6 +159,54 @@ describe('Testing getCredentialsByName() functionalities', () => {
     });
 });    
 
+describe('testing getCredentialsByMemberId() functionalities', () => {
+
+    let mockDB;
+
+    beforeEach(async () => {
+
+        vi.clearAllMocks();
+        mockDB = await getDB();
+    });
+
+    test('returns all credentials records based on given member_id', async() => {
+        //mock data
+        const mock_credential = {id: 3, member_id: 5, username: 'Henya', password: 'BestKettle'}
+
+        //test data
+        const member_id = 5;
+
+        //mock database function
+        mockDB.query.mockResolvedValue([[mock_credential]]);
+
+        //run actual function
+        const result = await CredentialsService.getCredentialsByMemberId(member_id);
+
+        //expect function to run properly
+        expect(mockDB.query).toBeCalledWith('SELECT * FROM credentials WHERE member_id = ?', [5])
+        expect(result).toEqual(mock_credential)
+
+
+    })
+
+    test('returns null if no record is found based on given member_id', async() => {
+        //mock data
+        
+        //test data
+        const member_id = 5;
+
+        //mock database function
+        mockDB.query.mockResolvedValue([[]]);
+
+        //run actual function
+        const result = await CredentialsService.getCredentialsByMemberId(member_id);
+
+        //expect function to run properly
+        expect(mockDB.query).toBeCalledWith('SELECT * FROM credentials WHERE member_id = ?', [5])
+        expect(result).toEqual(null)
+    })
+})
+
 
 
 describe('testing createCredentials() functionalities', () => {

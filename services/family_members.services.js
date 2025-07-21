@@ -59,6 +59,7 @@ export async function createFamilyMember(data, conn) {
     gender,
     relation_to_member,
     member_id,
+    educational_attainment
   };
 
   return created_family_member;
@@ -75,8 +76,9 @@ export async function updateFamilyMember(id, updates) {
     'middle_name',
     'birth_date',
     'gender',
-    'relation_to_family',
+    'relation_to_member',
     'member_id',
+    'educational_attainment',
   ];
 
   const keys = Object.keys(updates);
@@ -86,7 +88,21 @@ export async function updateFamilyMember(id, updates) {
   }
 
   const column = keys[0];
-  const value = updates[column];
+  let value = updates[column];
+
+  if (column === 'birth_date') {
+    if (value === null || value === undefined) {
+      value = null;
+    } else if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (isNaN(parsed.getTime())) {
+        throw new Error(`Invalid date format for birth_date: ${value}`);
+      }
+      value = parsed;
+    } else if (!(value instanceof Date)) {
+      throw new Error(`Invalid type for birth_date`);
+    }
+  }
 
   const [result] = await db.execute(
     `UPDATE kabuhayan_db.family_members SET \`${column}\` = ? WHERE id = ?`,

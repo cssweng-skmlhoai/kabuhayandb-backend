@@ -44,7 +44,8 @@ export async function createHouseholds(data, conn) {
     Septic_Tank,
   ];
   const [rows] = await db.execute(
-    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+
     values
   );
 
@@ -142,29 +143,30 @@ export async function updateHouseholdMultiple(id, updates, conn = null) {
 // DELETE '/households/:id'
 export async function deleteHousehold(id) {
   const db = await getDB();
-  let affectedRows = 0;
 
+  let totalAffectedFamilyMembers = 0;
   try {
     const [duesResult] = await db.execute(
       'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',
       [id]
     );
 
-    affectedRows += duesResult.affectedRows;
-    const family_id = await familyServices.getFamilyGivenHousehold(id);//NOTE: THIS FUNCTION DOESN'T EXIST AS OF THE TIME I'M WRITING THIS
-    const familyResult = await familyServices.deleteFamily(family_id);  //ERROR: deleteFamily() returns an int not an object
-
-    affectedRows += familyResult.affectedRows;//Doing this will result an undefined value
-
+    const family = await familyServices.getFamilyGivenHousehold(id);
+    if (family && family.id) {
+      const affectedMembers = await familyServices.deleteFamily(family.id);
+      totalAffectedFamilyMembers = affectedMembers;
+      console.log(
+        `Family (ID: ${family.id}) and its members deleted. Affected members: ${affectedMembers}`
+      );
+    } else {
+      console.log(`No family found for household ${id} to delete.`);
+    }
     const [householdResult] = await db.execute(
       'DELETE FROM kabuhayan_db.households WHERE id = ?',
       [id]
     );
-
-    console.log(householdResult);
-    affectedRows += householdResult.affectedRows;
-
-    return affectedRows;
+    console.log('Total Family Members Affected: ' + totalAffectedFamilyMembers);
+    return totalAffectedFamilyMembers;
   } catch (error) {
     console.error('An error occurred:', error.message);
   }
