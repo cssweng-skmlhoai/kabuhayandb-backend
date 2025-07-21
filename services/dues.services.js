@@ -138,24 +138,30 @@ export async function getDuesReport() {
   const [dues_by_household] = await db.query(
     `
     SELECT
-    d.household_id,
-    h.block_no,
-    h.lot_no,
-    COUNT(d.id) AS total_dues,
-    SUM(d.amount) AS total_amount,
-    CASE
-      WHEN SUM(d.status = 'Unpaid') = COUNT(*) THEN 'Unpaid'
-      WHEN SUM(d.status = 'Paid') = COUNT(*) THEN 'Fully Paid'
-    END AS payment_status
+      m.first_name,
+      m.last_name,
+      d.household_id,
+      h.block_no,
+      h.lot_no,
+      COUNT(d.id) AS total_dues,
+      SUM(d.amount) AS total_amount,
+      IF(SUM(d.status = 'Unpaid') = COUNT(*), 'Unpaid',
+        IF(SUM(d.status = 'Paid') = COUNT(*), 'Fully Paid', 'Partially Paid')) AS payment_status
     FROM dues d
     JOIN households h ON d.household_id = h.id
-    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
-    GROUP BY d.household_id, h.block_no, h.lot_no
-    `,
+    JOIN families f ON f.household_id = h.id
+    JOIN members m ON m.id = (
+      SELECT MIN(id) FROM members WHERE family_id = f.id
+    )
+    WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
+    GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
+`,
     [month, year]
   );
 
   const summary_due_household = dues_by_household.map((row) => ({
+    first_name: row.first_name,
+    last_name: row.last_name,
     household_id: row.household_id,
     block_no: row.block_no,
     lot_no: row.lot_no,
@@ -288,6 +294,7 @@ export async function updateDuesMultiple(id, updates) {
     'status',
     'due_type',
     'household_id',
+    'receipt_number',
   ];
 
   const setParts = [];
