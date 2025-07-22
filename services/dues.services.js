@@ -154,9 +154,11 @@ export async function getDuesReport() {
     FROM dues d
     JOIN households h ON d.household_id = h.id
     JOIN families f ON f.household_id = h.id
-    JOIN members m ON m.id = (
-      SELECT MIN(id) FROM members WHERE family_id = f.id
-    )
+    JOIN (
+    SELECT family_id, MIN(id) AS min_id
+    FROM members
+    GROUP BY family_id
+    ) min_members ON min_members.family_id = f.id
     WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
     GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
 `,
