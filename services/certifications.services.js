@@ -3,7 +3,9 @@ import { getDB } from '../config/connect.js';
 // GET '/certifications'
 export async function getCertifications() {
   const db = await getDB();
-  const [rows] = await db.query('SELECT * FROM certifications');
+  const [rows] = await db.query(
+    'SELECT m.first_name, m.last_name, c.* FROM certifications c JOIN members m ON c.member_id = m.id'
+  );
   return rows;
 }
 
@@ -25,9 +27,14 @@ export async function getCertificationByMemberId(id) {
     SELECT
     m.first_name,
     m.last_name,
-    c.*
+    TIMESTAMPDIFF(YEAR, m.birth_date, CURDATE()) AS age,
+    c.*,
+    h.block_no,
+    h.lot_no
     FROM certifications c
     JOIN members m ON c.member_id = m.id
+LEFT JOIN families f ON m.family_id = f.id
+LEFT JOIN households h ON f.household_id = h.id
     WHERE c.member_id = ?
     `,
     [id]
