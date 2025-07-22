@@ -338,7 +338,7 @@ export async function updateMembers(id, updates) {
   }
 
   const column = keys[0];
-  const value = updates[column];
+  let value = updates[column];
 
     if (column === 'birth_date') {
     if (value === null || value === undefined) {
