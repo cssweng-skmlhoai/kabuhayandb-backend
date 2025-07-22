@@ -44,9 +44,9 @@ export async function getCertificationByMemberId(id) {
     WHERE c.member_id = ?
     `,
     [id]
-  );
-  const certification = rows[0];
-  certification.crn = String(certification.crn).padStart(4, '0');
+  );//Assuming database is empty
+  const certification = rows[0];//If rows is an empty array
+  certification.crn = String(certification.crn).padStart(4, '0');//certification.crn is undefined and will cause error here
   return certification || null;
 }
 
