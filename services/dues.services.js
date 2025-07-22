@@ -50,6 +50,10 @@ export async function getDuesByMemberId(id) {
   };
 
   for (const due of dues) {
+    if (due.receipt_number != null) {
+      due.receipt_number = String(due.receipt_number).padStart(4, '0');
+    }
+
     if (due.status === 'Unpaid') {
       const key = due_types[due.due_type] || 'others';
       const amount = parseFloat(due.amount) || 0;
@@ -150,9 +154,11 @@ export async function getDuesReport() {
     FROM dues d
     JOIN households h ON d.household_id = h.id
     JOIN families f ON f.household_id = h.id
-    JOIN members m ON m.id = (
-      SELECT MIN(id) FROM members WHERE family_id = f.id
-    )
+    JOIN (
+    SELECT family_id, MIN(id) AS min_id
+    FROM members
+    GROUP BY family_id
+    ) min_members ON min_members.family_id = f.id
     WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
     GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
 `,
@@ -220,20 +226,25 @@ export async function createDues(data) {
     );
 
     const household_id = rows1[0]?.household_id;
-    const values = [new Date(due_date), amount, status, due_type, household_id];
+
+    const [rows2] = await conn.query(
+      `SELECT MAX(receipt_number) AS max_receipt FROM dues FOR UPDATE`
+    );
+    const curr_receipt = rows2[0]?.max_receipt || 0;
+    const new_receipt = curr_receipt + 1;
+
+    const values = [
+      new Date(due_date),
+      amount,
+      status,
+      due_type,
+      household_id,
+      new_receipt,
+    ];
 
     const [rows] = await conn.execute(
-      'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`, `receipt_number`) VALUES (?, ?, ?, ?, ?, ?)',
       values
-    );
-
-    const due_id = rows.insertId;
-    const receipt_number = due_id.toString().padStart(5, '0');
-
-    // automatic receipt_number generator
-    await conn.execute(
-      'UPDATE kabuhayan_db.dues SET receipt_number = ? WHERE id = ?',
-      [receipt_number, due_id]
     );
 
     await conn.commit();
@@ -244,7 +255,7 @@ export async function createDues(data) {
       amount,
       status,
       due_type,
-      receipt_number,
+      receipt_number: new_receipt,
       household_id,
     };
   } catch (error) {
