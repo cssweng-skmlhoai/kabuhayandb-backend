@@ -141,7 +141,7 @@ export async function getDuesReport() {
   // summary of due by household
   const [dues_by_household] = await db.query(
     `
-  SELECT
+    SELECT
     m.first_name,
     m.last_name,
     d.household_id,
