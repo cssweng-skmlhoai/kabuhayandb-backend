@@ -141,27 +141,34 @@ export async function getDuesReport() {
   // summary of due by household
   const [dues_by_household] = await db.query(
     `
-    SELECT
-      m.first_name,
-      m.last_name,
-      d.household_id,
-      h.block_no,
-      h.lot_no,
-      COUNT(d.id) AS total_dues,
-      SUM(d.amount) AS total_amount,
-      IF(SUM(d.status = 'Unpaid') = COUNT(*), 'Unpaid',
-        IF(SUM(d.status = 'Paid') = COUNT(*), 'Fully Paid', 'Partially Paid')) AS payment_status
-    FROM dues d
-    JOIN households h ON d.household_id = h.id
-    JOIN families f ON f.household_id = h.id
-    JOIN (
-    SELECT family_id, MIN(id) AS min_id
-    FROM members
-    GROUP BY family_id
-    ) min_members ON min_members.family_id = f.id
-    WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
-    GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
-`,
+  SELECT
+    m.first_name,
+    m.last_name,
+    d.household_id,
+    h.block_no,
+    h.lot_no,
+    COUNT(d.id) AS total_dues,
+    SUM(d.amount) AS total_amount,
+    CASE
+      WHEN SUM(d.status = 'Unpaid') = COUNT(*) THEN 'Unpaid'
+      WHEN SUM(d.status = 'Paid') = COUNT(*) THEN 'Fully Paid'
+      ELSE 'Partially Paid'
+    END AS payment_status
+  FROM dues d
+  JOIN households h ON d.household_id = h.id
+  JOIN families f ON f.household_id = h.id
+  JOIN (
+    SELECT m1.*
+    FROM members m1
+    INNER JOIN (
+      SELECT family_id, MIN(id) AS min_id
+      FROM members
+      GROUP BY family_id
+    ) m2 ON m1.id = m2.min_id
+  ) m ON m.family_id = f.id
+  WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
+  GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
+  `,
     [month, year]
   );
 
