@@ -12,7 +12,6 @@ export async function getCertifications() {
       row.crn = String(row.crn).padStart(4, '0');
     }
   }
-
   return rows;
 }
 
@@ -48,7 +47,6 @@ export async function getCertificationByMemberId(id) {
   );
   const certification = rows[0];
   certification.crn = String(certification.crn).padStart(4, '0');
-
   return certification || null;
 }
 
