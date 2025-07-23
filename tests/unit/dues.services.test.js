@@ -355,6 +355,8 @@ describe('testing getDuesReport() functionalities', () => {
     expect(mockDB.query).toHaveBeenNthCalledWith(4, 
     `
     SELECT
+    m.first_name,
+    m.last_name,
     d.household_id,
     h.block_no,
     h.lot_no,
@@ -363,12 +365,23 @@ describe('testing getDuesReport() functionalities', () => {
     CASE
       WHEN SUM(d.status = 'Unpaid') = COUNT(*) THEN 'Unpaid'
       WHEN SUM(d.status = 'Paid') = COUNT(*) THEN 'Fully Paid'
+      ELSE 'Partially Paid'
     END AS payment_status
-    FROM dues d
-    JOIN households h ON d.household_id = h.id
-    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
-    GROUP BY d.household_id, h.block_no, h.lot_no
-    `,
+  FROM dues d
+  JOIN households h ON d.household_id = h.id
+  JOIN families f ON f.household_id = h.id
+  JOIN (
+    SELECT m1.*
+    FROM members m1
+    INNER JOIN (
+      SELECT family_id, MIN(id) AS min_id
+      FROM members
+      GROUP BY family_id
+    ) m2 ON m1.id = m2.min_id
+  ) m ON m.family_id = f.id
+  WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
+  GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
+  `,
     [expect.any(Number), expect.any(Number)])
 
     expect(mockDB.query).toHaveBeenNthCalledWith(5, 
@@ -513,6 +526,8 @@ describe('testing getDuesReport() functionalities', () => {
     expect(mockDB.query).toHaveBeenNthCalledWith(4, 
     `
     SELECT
+    m.first_name,
+    m.last_name,
     d.household_id,
     h.block_no,
     h.lot_no,
@@ -521,12 +536,23 @@ describe('testing getDuesReport() functionalities', () => {
     CASE
       WHEN SUM(d.status = 'Unpaid') = COUNT(*) THEN 'Unpaid'
       WHEN SUM(d.status = 'Paid') = COUNT(*) THEN 'Fully Paid'
+      ELSE 'Partially Paid'
     END AS payment_status
-    FROM dues d
-    JOIN households h ON d.household_id = h.id
-    WHERE MONTH(due_date) = ? AND YEAR(due_date) = ?
-    GROUP BY d.household_id, h.block_no, h.lot_no
-    `,
+  FROM dues d
+  JOIN households h ON d.household_id = h.id
+  JOIN families f ON f.household_id = h.id
+  JOIN (
+    SELECT m1.*
+    FROM members m1
+    INNER JOIN (
+      SELECT family_id, MIN(id) AS min_id
+      FROM members
+      GROUP BY family_id
+    ) m2 ON m1.id = m2.min_id
+  ) m ON m.family_id = f.id
+  WHERE MONTH(d.due_date) = ? AND YEAR(d.due_date) = ?
+  GROUP BY d.household_id, h.block_no, h.lot_no, m.first_name, m.last_name
+  `,
     [expect.any(Number), expect.any(Number)])
 
     expect(mockDB.query).toHaveBeenNthCalledWith(5, 
@@ -685,8 +711,8 @@ describe('testing createDues(data) functionalities', () => {
 
     //Mock connection queries
     mockConnection.query.mockResolvedValueOnce([[{household_id: 2}]]) //Mock the conn.query of SELECT
+    mockConnection.query.mockResolvedValueOnce([[{max_receipt:123}]])//Mock conn.execute of UPDATE
     mockConnection.execute.mockResolvedValueOnce([{insertId: 2}])//Mock conn.execute of INSERT
-    mockConnection.execute.mockResolvedValueOnce([])//Mock conn.execute of UPDATE
 
     //run actual function
     const result = await DuesService.createDues(data)
@@ -703,7 +729,9 @@ describe('testing createDues(data) functionalities', () => {
       WHERE m.id = ?
     `, [1])
 
-    expect(mockConnection.execute).toHaveBeenNthCalledWith(1,'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`) VALUES (?, ?, ?, ?, ?)', expect.any(Array))
+    expect(mockConnection.query).toHaveBeenNthCalledWith(2, `SELECT MAX(receipt_number) AS max_receipt FROM dues FOR UPDATE`)
+
+    expect(mockConnection.execute).toHaveBeenNthCalledWith(1,"INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`, `receipt_number`) VALUES (?, ?, ?, ?, ?, ?)", expect.any(Array))
 
     const [calledQuery, calledValues] = mockConnection.execute.mock.calls[0]; //the [0] is the first execute
 
@@ -712,8 +740,7 @@ describe('testing createDues(data) functionalities', () => {
     expect(calledValues[2]).toBe('Unpaid');
     expect(calledValues[3]).toBe('Penalties');
     expect(calledValues[4]).toBe(2);
-
-    expect(mockConnection.execute).toHaveBeenNthCalledWith(2, 'UPDATE kabuhayan_db.dues SET receipt_number = ? WHERE id = ?', ['00002', 2])
+    expect(calledValues[5]).toBe(124);
 
     expect(mockConnection.commit).toHaveBeenCalled();
 
@@ -724,8 +751,9 @@ describe('testing createDues(data) functionalities', () => {
       amount: 1000,
       status: 'Unpaid',
       due_type: 'Penalties',
-      receipt_number: '00002',
+      receipt_number: 124,
       household_id: 2 
+      
     });
 
     expect(mockConnection.release).toHaveBeenCalled();
@@ -745,6 +773,7 @@ describe('testing createDues(data) functionalities', () => {
 
     //Mock connection queries
     mockConnection.query.mockResolvedValueOnce([[]]);
+    mockConnection.query.mockResolvedValueOnce([[]]);
     mockConnection.execute.mockRejectedValueOnce('INSERT ERROR: foreign key household_id cannot be null');
 
     //run actual function
@@ -761,7 +790,7 @@ describe('testing createDues(data) functionalities', () => {
       WHERE m.id = ?
     `, [1])
 
-    expect(mockConnection.execute).toHaveBeenNthCalledWith(1,'INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`) VALUES (?, ?, ?, ?, ?)', expect.any(Array))
+    expect(mockConnection.execute).toHaveBeenNthCalledWith(1,"INSERT INTO kabuhayan_db.dues (`due_date`, `amount`, `status`, `due_type`,  `household_id`, `receipt_number`) VALUES (?, ?, ?, ?, ?, ?)", expect.any(Array))
 
     const [calledQuery, calledValues] = mockConnection.execute.mock.calls[0]; //the [0] is the first execute
 
@@ -770,6 +799,7 @@ describe('testing createDues(data) functionalities', () => {
     expect(calledValues[2]).toBe('Unpaid');
     expect(calledValues[3]).toBe('Penalties');
     expect(calledValues[4]).toBeUndefined;
+    expect(calledValues[5]).toBe(1)
 
     expect(mockConnection.rollback).toHaveBeenCalled();
     expect(mockConnection.release).toHaveBeenCalled();
