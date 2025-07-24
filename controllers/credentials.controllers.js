@@ -111,3 +111,24 @@ export async function verifyLogin(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function changePassword(req, res) {
+  try {
+    const id = req.params.id;
+    const { current_password, new_password } = req.body;
+
+    const result = await CredentialsService.changePassword(
+      id,
+      current_password,
+      new_password
+    );
+
+    if (result === 0) {
+      res.status(404).json({ message: `No credential found with id: ${id}` });
+    } else {
+      res.status(200).json({ success: true, result });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
