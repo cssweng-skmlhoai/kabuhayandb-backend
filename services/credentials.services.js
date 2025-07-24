@@ -56,6 +56,7 @@ export async function createCredentials(data) {
     id: result.insertId,
     member_id,
     username,
+    pfp,
   };
 
   return created_credential;
@@ -91,6 +92,40 @@ export async function updateCredentials(id, updates) {
   );
 
   return { affectedRows: result.affectedRows };
+}
+
+// POST '/credentials/password/:id'
+export async function changePassword(id, current_password, new_password) {
+  const db = await getDB();
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [password] = await conn.query(
+      'SELECT id, password FROM credentials WHERE member_id = ?',
+      [id]
+    );
+
+    const match = await bcrypt.compare(current_password, password[0].password);
+
+    if (!match) throw new Error();
+
+    const hashed_password = await bcrypt.hash(new_password, salt_rounds);
+
+    const [result] = await conn.execute(
+      'UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?',
+      [hashed_password, password[0].id]
+    );
+
+    await conn.commit();
+    return { affectedRows: result.affectedRows };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
 }
 
 // DELETE '/credentials/:id'

@@ -4,7 +4,7 @@ import { getDB } from '../config/connect.js';
 export async function getCertifications() {
   const db = await getDB();
   const [rows] = await db.query(
-    'SELECT m.first_name, m.last_name, c.* FROM certifications c JOIN members m ON c.member_id = m.id'
+    'SELECT m.first_name, m.last_name, m.middle_name, c.* FROM certifications c JOIN members m ON c.member_id = m.id'
   );
 
   for (const row of rows) {
@@ -33,6 +33,7 @@ export async function getCertificationByMemberId(id) {
     SELECT
     m.first_name,
     m.last_name,
+    m.middle_name,
     TIMESTAMPDIFF(YEAR, m.birth_date, CURDATE()) AS age,
     c.*,
     h.block_no,
@@ -44,9 +45,9 @@ export async function getCertificationByMemberId(id) {
     WHERE c.member_id = ?
     `,
     [id]
-  );//Assuming database is empty
-  const certification = rows[0];//If rows is an empty array
-  certification.crn = String(certification.crn).padStart(4, '0');//certification.crn is undefined and will cause error here
+  ); //Assuming database is empty
+  const certification = rows[0]; //If rows is an empty array
+  certification.crn = String(certification.crn).padStart(4, '0'); //certification.crn is undefined and will cause error here
   return certification || null;
 }
 
