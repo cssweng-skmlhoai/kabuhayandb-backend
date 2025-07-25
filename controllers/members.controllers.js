@@ -40,7 +40,10 @@ export async function getMembersById(req, res) {
 
 export async function createMembers(req, res) {
   try {
-    const data = req.body;
+    const data = {
+      ...req.body,
+      confirmity_signature: req.file?.buffer || null,
+    };
     const created_member = await MembersService.createMembers(data);
 
     res.status(201).json(created_member);
@@ -52,8 +55,10 @@ export async function createMembers(req, res) {
 export async function updateMembers(req, res) {
   try {
     const { id } = req.params;
-    const updates = req.body;
-
+    const updates = {
+      ...req.body,
+      confirmity_signature: req.file?.buffer || null,
+    };
     const result = await MembersService.updateMembers(id, updates);
 
     // checks if member is found given id
@@ -88,7 +93,10 @@ export async function deleteMembers(req, res) {
 export async function updateMemberMultiple(req, res) {
   try {
     const memberId = req.params.id;
-    const updates = req.body;
+    const updates = {
+      ...req.body,
+      confirmity_signature: req.file?.buffer || null,
+    };
 
     const result = await MembersService.updateMemberMultiple(memberId, updates);
     if (result.affectedRows === 0) {
@@ -123,7 +131,15 @@ export async function getMemberInfoById(req, res) {
 export async function updateMemberInfo(req, res) {
   try {
     const member_id = req.params.id;
-    const payload = req.body;
+    const payload = {
+      ...req.body,
+      members: req.file?.buffer
+        ? {
+            ...req.body.members,
+            confirmity_signature: req.file.buffer,
+          }
+        : req.body.members,
+    };
 
     const result = await MembersService.updateMemberInfo(member_id, payload);
 
@@ -140,7 +156,15 @@ export async function updateMemberInfo(req, res) {
 
 export async function createMemberInfo(req, res) {
   try {
-    const payload = req.body;
+    const payload = {
+      ...req.body,
+      members: req.file?.buffer
+        ? {
+            ...req.body.members,
+            confirmity_signature: req.file.buffer,
+          }
+        : req.body.members,
+    };
 
     const result = await MembersService.createMemberInfo(payload);
 
