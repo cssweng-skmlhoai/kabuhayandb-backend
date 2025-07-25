@@ -131,15 +131,18 @@ export async function getMemberInfoById(req, res) {
 export async function updateMemberInfo(req, res) {
   try {
     const member_id = req.params.id;
+    const bodyData =
+      typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
     const payload = {
       members: {
-        ...req.body,
+        ...bodyData,
         confirmity_signature: req.file?.buffer || null,
       },
-      ...(req.body.families && { families: req.body.families }),
-      ...(req.body.households && { households: req.body.households }),
-      ...(req.body.family_members && {
-        family_members: req.body.family_members,
+      ...(bodyData.families && { families: bodyData.families }),
+      ...(bodyData.households && { households: bodyData.households }),
+      ...(bodyData.family_members && {
+        family_members: bodyData.family_members,
       }),
     };
 
@@ -158,18 +161,20 @@ export async function updateMemberInfo(req, res) {
 
 export async function createMemberInfo(req, res) {
   try {
+    const bodyData =
+      typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
     const payload = {
       members: {
-        ...req.body,
+        ...bodyData,
         confirmity_signature: req.file?.buffer || null,
       },
-      ...(req.body.families && { families: req.body.families }),
-      ...(req.body.households && { households: req.body.households }),
-      ...(req.body.family_members && {
-        family_members: req.body.family_members,
+      ...(bodyData.families && { families: bodyData.families }),
+      ...(bodyData.households && { households: bodyData.households }),
+      ...(bodyData.family_members && {
+        family_members: bodyData.family_members,
       }),
     };
-
     const result = await MembersService.createMemberInfo(payload);
 
     res.status(201).json(result);
