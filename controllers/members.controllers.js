@@ -136,7 +136,7 @@ export async function updateMemberInfo(req, res) {
 
     const payload = {
       members: {
-        ...bodyData,
+        ...(bodyData.members || {}),
         confirmity_signature: req.file?.buffer || null,
       },
       ...(bodyData.families && { families: bodyData.families }),
@@ -166,7 +166,7 @@ export async function createMemberInfo(req, res) {
 
     const payload = {
       members: {
-        ...bodyData,
+        ...(bodyData.members || {}),
         confirmity_signature: req.file?.buffer || null,
       },
       ...(bodyData.families && { families: bodyData.families }),
