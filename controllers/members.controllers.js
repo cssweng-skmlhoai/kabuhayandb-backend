@@ -130,20 +130,20 @@ export async function getMemberInfoById(req, res) {
 
 export async function updateMemberInfo(req, res) {
   try {
+    const members_data = JSON.parse(req.body.members || '{}');
+    const families_data = JSON.parse(req.body.families || '{}');
+    const households_data = JSON.parse(req.body.households || '{}');
+    const family_members_data = JSON.parse(req.body.family_members || '{}');
     const member_id = req.params.id;
-    const bodyData =
-      typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
     const payload = {
       members: {
-        ...(bodyData.members || {}),
+        ...members_data,
         confirmity_signature: req.file?.buffer || null,
       },
-      ...(bodyData.families && { families: bodyData.families }),
-      ...(bodyData.households && { households: bodyData.households }),
-      ...(bodyData.family_members && {
-        family_members: bodyData.family_members,
-      }),
+      families: families_data,
+      households: households_data,
+      family_members: family_members_data,
     };
 
     const result = await MembersService.updateMemberInfo(member_id, payload);
@@ -161,20 +161,21 @@ export async function updateMemberInfo(req, res) {
 
 export async function createMemberInfo(req, res) {
   try {
-    const bodyData =
-      typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const members_data = JSON.parse(req.body.members || '{}');
+    const families_data = JSON.parse(req.body.families || '{}');
+    const households_data = JSON.parse(req.body.households || '{}');
+    const family_members_data = JSON.parse(req.body.family_members || '{}');
 
     const payload = {
       members: {
-        ...(bodyData.members || {}),
+        ...members_data,
         confirmity_signature: req.file?.buffer || null,
       },
-      ...(bodyData.families && { families: bodyData.families }),
-      ...(bodyData.households && { households: bodyData.households }),
-      ...(bodyData.family_members && {
-        family_members: bodyData.family_members,
-      }),
+      families: families_data,
+      households: households_data,
+      family_members: family_members_data,
     };
+
     const result = await MembersService.createMemberInfo(payload);
 
     res.status(201).json(result);
