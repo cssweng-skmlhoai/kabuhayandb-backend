@@ -9,12 +9,12 @@ router.use(authenticateApiSecret);
 
 router.put(
   '/info/:id',
-  upload.single('signature'),
+  upload.single('confirmity_signature'),
   MembersController.updateMemberInfo
 );
 router.post(
   '/info',
-  upload.single('signature'),
+  upload.single('confirmity_signature'),
   MembersController.createMemberInfo
 );
 
@@ -26,16 +26,20 @@ router.get('/:id', MembersController.getMembersById);
 router.delete('/:id', MembersController.deleteMembers);
 router.patch(
   '/:id',
-  upload.single('signature'),
+  upload.single('confirmity_signature'),
   MembersController.updateMembers
 );
 router.put(
   '/:id',
-  upload.single('signature'),
+  upload.single('confirmity_signature'),
   MembersController.updateMemberMultiple
 );
 
 // catch all routes
-router.post('/', upload.single('signature'), MembersController.createMembers);
+router.post(
+  '/',
+  upload.single('confirmity_signature'),
+  MembersController.createMembers
+);
 router.get('/', MembersController.getMembers);
 export default router;

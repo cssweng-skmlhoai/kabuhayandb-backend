@@ -340,7 +340,7 @@ export async function updateMembers(id, updates) {
   const column = keys[0];
   let value = updates[column];
 
-    if (column === 'birth_date') {
+  if (column === 'birth_date') {
     if (value === null || value === undefined) {
       value = null;
     } else if (typeof value === 'string') {
@@ -354,7 +354,6 @@ export async function updateMembers(id, updates) {
     }
   }
 
-  
   const [result] = await db.execute(
     `UPDATE kabuhayan_db.members SET \`${column}\` = ? WHERE id = ?`,
     [value, id]

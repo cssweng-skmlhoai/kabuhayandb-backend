@@ -12,6 +12,11 @@ router.post(
   upload.single('pfp'),
   UploadController.uploadImgByMemberId
 );
+router.post(
+  '/signature/:id',
+  upload.single('pfp'),
+  UploadController.uploadSigByMemberId
+);
 
 router.get('/member/:id', UploadController.getPfpByMemberId);
 

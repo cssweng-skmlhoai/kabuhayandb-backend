@@ -132,13 +132,15 @@ export async function updateMemberInfo(req, res) {
   try {
     const member_id = req.params.id;
     const payload = {
-      ...req.body,
-      members: req.file?.buffer
-        ? {
-            ...req.body.members,
-            confirmity_signature: req.file.buffer,
-          }
-        : req.body.members,
+      members: {
+        ...req.body,
+        confirmity_signature: req.file?.buffer || null,
+      },
+      ...(req.body.families && { families: req.body.families }),
+      ...(req.body.households && { households: req.body.households }),
+      ...(req.body.family_members && {
+        family_members: req.body.family_members,
+      }),
     };
 
     const result = await MembersService.updateMemberInfo(member_id, payload);
@@ -157,13 +159,15 @@ export async function updateMemberInfo(req, res) {
 export async function createMemberInfo(req, res) {
   try {
     const payload = {
-      ...req.body,
-      members: req.file?.buffer
-        ? {
-            ...req.body.members,
-            confirmity_signature: req.file.buffer,
-          }
-        : req.body.members,
+      members: {
+        ...req.body,
+        confirmity_signature: req.file?.buffer || null,
+      },
+      ...(req.body.families && { families: req.body.families }),
+      ...(req.body.households && { households: req.body.households }),
+      ...(req.body.family_members && {
+        family_members: req.body.family_members,
+      }),
     };
 
     const result = await MembersService.createMemberInfo(payload);
