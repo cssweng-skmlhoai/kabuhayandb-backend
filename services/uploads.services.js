@@ -32,3 +32,21 @@ export async function getPfpByMemberId(id) {
 
   return pfp;
 }
+
+export async function uploadSigByMemberId(data) {
+  const db = await getDB();
+  const { buffer, mime_type, original_name, member_id } = data;
+
+  const [upload] = await db.execute(
+    'UPDATE members SET confirmity_signature = ? WHERE id = ?',
+    [buffer, member_id]
+  );
+
+  return {
+    upload: upload.affectedRows > 0,
+    buffer,
+    mime_type,
+    original_name,
+    member_id,
+  };
+}
