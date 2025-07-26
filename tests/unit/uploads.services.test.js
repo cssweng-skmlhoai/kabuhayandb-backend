@@ -138,3 +138,38 @@ describe('Testing getPfpBtMemberId() functionalities', () => {
     })
 
 })
+
+describe('testing uploadSigByMemberId() functionalities', () => {
+
+    let mockDB;
+
+    beforeEach(async () => {
+        vi.clearAllMocks();
+        mockDB = await getDB();
+    });
+
+    test('successfully upload signature by member and returns what was sent', async() => {
+
+        const data = {
+            buffer: Buffer.from('fake-image-data'),
+            mime_type: 'image/png',
+            original_name: 'mypic.png',
+            member_id: 1,
+        }
+
+        mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}]);
+
+        const result = await UploadsServices.uploadSigByMemberId(data)
+
+        expect(mockDB.execute).toHaveBeenCalledWith('UPDATE members SET confirmity_signature = ? WHERE id = ?', [Buffer.from('fake-image-data'), 1])
+
+        expect(result).toEqual({
+            upload: true,
+            buffer: Buffer.from('fake-image-data'),
+            mime_type: 'image/png',
+            original_name: 'mypic.png',
+            member_id: 1,
+        })
+
+    })
+})
