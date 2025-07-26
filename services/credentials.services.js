@@ -107,7 +107,7 @@ export async function changePassword(id, current_password, new_password) {
       [id]
     );
 
-    const match = await bcrypt.compare(current_password, password[0].password);
+    const match = await bcrypt.compare(current_password, password[0].password);//Assuming an empty database password[0] returns undefined and will cause error here
 
     if (!match) throw new Error();
 
