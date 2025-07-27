@@ -93,7 +93,7 @@ export async function createMemberInfo(data) {
       }
     }
 
-    const username = `${members.first_name.toLowerCase()}${members.last_name.toLowerCase()}`;
+    const username = `${members.first_name.toLowerCase()}_${members.last_name.toLowerCase()}`;
     const length = 10;
     const charset =
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
