@@ -42,11 +42,9 @@ export async function getMembersHome() {
       h.block_no,
       h.lot_no,
       h.tct_no,
-      c.pfp
     FROM members m
     JOIN families f ON m.family_id = f.id
     JOIN households h ON f.household_id = h.id
-    LEFT JOIN credentials c ON c.member_id = m.id
   `);
   return members;
 }
