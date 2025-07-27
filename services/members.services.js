@@ -45,7 +45,7 @@ export async function getMembersHome() {
     FROM members m
     JOIN families f ON m.family_id = f.id
     JOIN households h ON f.household_id = h.id
-    JOIN credentials c ON c.member_id = m.id
+    LEFT JOIN credentials c ON c.member_id = m.id
   `);
   return members;
 }
@@ -142,7 +142,7 @@ export async function getMemberInfoById(id) {
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
-      JOIN credentials c ON c.member_id = m.id
+      LEFT JOIN credentials c ON c.member_id = m.id
       WHERE m.id = ?;
     `,
     [id]
