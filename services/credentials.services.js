@@ -41,8 +41,8 @@ export async function getCredentialsByMemberId(id) {
 }
 
 // POST '/credentials'
-export async function createCredentials(data) {
-  const db = await getDB();
+export async function createCredentials(data, conn) {
+  const db = conn || (await getDB());
   const { member_id, username, password, pfp } = data;
   const hashed_password = await bcrypt.hash(password, salt_rounds);
   const values = [member_id, username, hashed_password, pfp];
@@ -107,7 +107,7 @@ export async function changePassword(id, current_password, new_password) {
       [id]
     );
 
-    const match = await bcrypt.compare(current_password, password[0].password);//Assuming an empty database password[0] returns undefined and will cause error here
+    const match = await bcrypt.compare(current_password, password[0].password); //Assuming an empty database password[0] returns undefined and will cause error here
 
     if (!match) throw new Error();
 

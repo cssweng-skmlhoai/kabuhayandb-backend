@@ -1,4 +1,5 @@
 import { getDB } from '../config/connect.js';
+import { createCredentials } from './credentials.services.js';
 import {
   updateFamiliesMultiple,
   createFamilies,
@@ -92,6 +93,23 @@ export async function createMemberInfo(data) {
       }
     }
 
+    const username = `${members.first_name.toLowerCase()}${members.last_name.toLowerCase()}`;
+    const length = 10;
+    const charset =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+
+    const data = {
+      member_id: member_data.id,
+      username,
+      password,
+      pfp: null,
+    };
+
+    const credentials = await createCredentials(data, conn);
     await conn.commit();
 
     return {
@@ -99,6 +117,10 @@ export async function createMemberInfo(data) {
       family_data,
       member_data,
       family_members,
+      credentials: {
+        username,
+        password,
+      },
     };
   } catch (error) {
     await conn.rollback();
