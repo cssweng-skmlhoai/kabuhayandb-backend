@@ -40,10 +40,12 @@ export async function getMembersHome() {
       f.head_position,
       h.block_no,
       h.lot_no,
-      h.tct_no
+      h.tct_no,
+      c.pfp
     FROM members m
     JOIN families f ON m.family_id = f.id
-    JOIN households h ON f.household_id = h.id;
+    JOIN households h ON f.household_id = h.id
+    JOIN credentials c ON c.member_id = m.id
   `);
   return members;
 }
@@ -135,10 +137,12 @@ export async function getMemberInfoById(id) {
         h.Maynilad,
         h.Septic_Tank,
         f.land_acquisition,
-        f.status_of_occupancy
+        f.status_of_occupancy,
+        c.pfp
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
+      JOIN credentials c ON c.member_id = m.id
       WHERE m.id = ?;
     `,
     [id]
