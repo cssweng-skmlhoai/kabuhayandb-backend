@@ -4,11 +4,21 @@ import * as CredentialsService from '../../services/credentials.services.js';
 import bcrypt from 'bcrypt';
 
 vi.mock('../../config/connect.js', () => ({
-  getDB: vi.fn().mockResolvedValue({
-    execute: vi.fn(),
-    query: vi.fn(),
-  }),
-}));
+
+  getDB: vi.fn().mockResolvedValue({//Mock SQL queries of getDB
+      query: vi.fn(),
+      execute: vi.fn(),
+    getConnection: vi.fn().mockResolvedValue({//getDB also returns an object of getConnections() that has its own set of queries and executes
+      query: vi.fn(),//Mock those as well
+      execute: vi.fn(),
+      beginTransaction: vi.fn(), //And also the function unique to getConnections
+      commit: vi.fn(),
+      rollback: vi.fn(),
+      release: vi.fn()
+    })
+  })
+
+}))
 
 //For mocking the hash function
 vi.mock('bcrypt', () => ({
@@ -369,6 +379,107 @@ describe('Testing deleteCredentials() functionalities', () => {
     expect(result).toBe(1);
   });
 });
+
+describe('Testing changePassword() functionalities', () => {
+
+  let mockDB;
+    let mockConnection;
+
+    beforeEach(async () => {
+      vi.clearAllMocks()
+      mockDB = await getDB();
+      mockConnection = await mockDB.getConnection();
+
+    });
+
+  test('Successfully changes password by passing the correct old passowrd', async() => {
+
+    const id = 2
+    const current_password = 'old_password'
+    const new_password = 'new_password'
+
+    const mock_data = {
+      id: 2,
+      password: 'Hashed_old_password'
+    }
+
+    mockConnection.query.mockResolvedValueOnce([[mock_data]])
+    bcrypt.compare.mockResolvedValueOnce(true)//assume old password sent is correct
+    bcrypt.hash.mockResolvedValueOnce('Hashed_new_password')
+
+    mockConnection.execute.mockResolvedValueOnce([{affectedRows: 1}])
+
+    const result = await CredentialsService.changePassword(id, current_password, new_password)
+
+    expect(mockConnection.beginTransaction).toBeCalled()
+
+    expect(mockConnection.query).toBeCalledWith('SELECT id, password FROM credentials WHERE member_id = ?', [2])
+
+    expect(bcrypt.compare).toHaveBeenCalledWith(current_password, mock_data.password)
+
+    expect(mockConnection.execute).toBeCalledWith('UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?', ['Hashed_new_password', 2])
+
+    expect(mockConnection.commit).toBeCalled()
+
+    expect(result).toEqual({affectedRows: 1})
+
+    expect(mockConnection.release).toBeCalled()
+
+  })
+
+  test('Fails in changing password by passing the wrong old passowrd', async() => {
+
+    const id = 2
+    const current_password = 'wrong_password'
+    const new_password = 'new_password'
+
+    const mock_data = {
+      id: 2,
+      password: 'Hashed_old_password'
+    }
+
+    mockConnection.query.mockResolvedValueOnce([[mock_data]])
+    bcrypt.compare.mockResolvedValueOnce(false)//assume old password sent is wrong
+
+    await expect(CredentialsService.changePassword(id, current_password, new_password)).rejects.toThrow()
+    
+    expect(mockConnection.beginTransaction).toBeCalled()
+
+    expect(mockConnection.query).toBeCalledWith('SELECT id, password FROM credentials WHERE member_id = ?', [2])
+
+    expect(bcrypt.compare).toHaveBeenCalledWith(current_password, mock_data.password)
+
+    expect(mockConnection.rollback).toBeCalled()
+
+  })
+
+  /*
+  test('Fails in changing password by passing an ID to an empty', async() => {
+
+    const id = 2
+    const current_password = 'wrong_password'
+    const new_password = 'new_password'
+
+    
+
+    mockConnection.query.mockResolvedValueOnce([[]])
+    bcrypt.compare.mockResolvedValueOnce(false)//assume old password sent is wrong
+
+    await expect(CredentialsService.changePassword(id, current_password, new_password)).rejects.toThrow()
+    
+    expect(mockConnection.beginTransaction).toBeCalled()
+
+    expect(mockConnection.query).toBeCalledWith('SELECT id, password FROM credentials WHERE member_id = ?', [2])
+
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+
+    expect(mockConnection.rollback).toBeCalled()
+
+  })
+  */
+
+
+})
 
 describe('Testing verifyLogin() functionalities', () => {
   let mockDB;
