@@ -27,7 +27,7 @@ const startServer = async () => {
 
     app.use(
       cors({
-        origin: allowedOrigins,
+        origin: 'http://localhost:5173',
         credentials: true,
       })
     );
