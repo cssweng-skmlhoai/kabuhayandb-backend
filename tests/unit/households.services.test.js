@@ -10,12 +10,11 @@ vi.mock('../../config/connect.js', () => ({
   }),
 }));
 
-vi.mock('../../services/families.services.js', () => ({ //mock functions of families.services that is used by deleteHousehold()
+vi.mock('../../services/families.services.js', () => ({
+  //mock functions of families.services that is used by deleteHousehold()
 
   getFamilyGivenHousehold: vi.fn(),
-  deleteFamily: vi.fn()
-
-
+  deleteFamily: vi.fn(),
 }));
 
 describe('Testing getHouseholds() funtionalities', () => {
@@ -180,7 +179,8 @@ describe('testing createHouseholds() functionalities', () => {
     */
 
     expect(mockDB.execute).toHaveBeenCalledWith(
-      'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)', expect.any(Array)
+      'INSERT INTO kabuhayan_db.households (`condition_type`, `tct_no`, `block_no`, `lot_no`, `area`, `open_space_share`, `Meralco`, `Maynilad`, `Septic_Tank`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      expect.any(Array)
     );
 
     const [calledQuery, calledValues] = mockDB.execute.mock.calls[0];
@@ -264,87 +264,89 @@ describe('Testing updateHouseholds() functionalities', () => {
 });
 
 describe('Testing updateHouseholdMultiple() functionalities', () => {
+  let mockDB;
+  let mockConn;
 
-    let mockDB;
-    let mockConn
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockDB = await getDB();
+    mockConn = mockDB;
+  });
 
-    beforeEach(async () => {
+  test('Updates multiple columns and returns the number of affected rows', async () => {
+    //test data
+    const id = 3;
+    const updates = {
+      condition_type: 'Needs major repair',
+      Meralco: 'True',
+    };
 
-        vi.clearAllMocks();
-        mockDB = await getDB();
-        mockConn = mockDB;
-    });
+    //mock database functions
+    mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
 
-     test('Updates multiple columns and returns the number of affected rows', async() => {
+    //Run actual function
 
-        //test data
-        const id = 3;
-        const updates = {
+    const result = await HouseholdServices.updateHouseholdMultiple(id, updates);
 
-          condition_type: 'Needs major repair', 
-          Meralco: 'True' 
-        }
+    //Expect function to run properly
+    expect(mockDB.execute).toHaveBeenCalledWith(
+      'UPDATE kabuhayan_db.households SET `condition_type` = ?, `Meralco` = ? WHERE id = ?',
+      ['Needs major repair', 'True', 3]
+    );
+    expect(result).toEqual({ affectedRows: 1 });
+  });
 
-        //mock database functions
-        mockDB.execute.mockResolvedValueOnce([{affectedRows: 1}])
+  test('Throw error for updating unauthorized column', async () => {
+    //test data
+    const id = 3;
+    const updates = {
+      condition_type: 'Needs major repair',
+      Meralco: 'True',
+      Drugs: 'Shabu-Shabu',
+    };
 
-        //Run actual function
+    await expect(
+      HouseholdServices.updateHouseholdMultiple(id, updates)
+    ).rejects.toThrow(`Attempted to update an unauthorized column: Drugs`);
+  });
 
-        const result = await HouseholdServices.updateHouseholdMultiple(id, updates)
+  test('Throw error for trying to update no columns', async () => {
+    //test data
+    const id = 4;
+    const updates = {};
 
-        //Expect function to run properly
-        expect(mockDB.execute).toHaveBeenCalledWith('UPDATE kabuhayan_db.households SET `condition_type` = ?, `Meralco` = ? WHERE id = ?', ['Needs major repair', 'True', 3])
-        expect(result).toEqual({affectedRows: 1})
-     })
+    //Run the function
+    await expect(
+      HouseholdServices.updateHouseholdMultiple(id, updates)
+    ).rejects.toThrow(`No valid columns provided for update.`);
+  });
+  test('Updates multiple columns and returns the number of affected rows by using an existing connection to database', async () => {
+    //test data
+    const id = 3;
+    const updates = {
+      condition_type: 'Needs major repair',
+      Meralco: 'True',
+    };
 
-     test("Throw error for updating unauthorized column", async() => {
+    //mock database functions
+    mockConn.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
 
-        //test data
-        const id = 3;
-        const updates = {
-          condition_type: 'Needs major repair', 
-          Meralco: 'True',
-          Drugs: 'Shabu-Shabu',
-        }
+    //Run actual function
 
-        await expect(HouseholdServices.updateHouseholdMultiple(id, updates)).rejects.toThrow(`Attempted to update an unauthorized column: Drugs`);
-     })
+    const result = await HouseholdServices.updateHouseholdMultiple(
+      id,
+      updates,
+      mockConn
+    );
 
-     test('Throw error for trying to update no columns', async() => {
-
-        //test data
-        const id = 4
-        const updates = {
-        }
-
-        //Run the function
-        await expect(HouseholdServices.updateHouseholdMultiple(id, updates)).rejects.toThrow(`No valid columns provided for update.`);
-
-     })
-     test('Updates multiple columns and returns the number of affected rows by using an existing connection to database', async() => {
-
-        //test data
-        const id = 3;
-        const updates = {
-
-            condition_type: 'Needs major repair', 
-            Meralco: 'True', 
-        }
-
-        //mock database functions
-        mockConn.execute.mockResolvedValueOnce([{affectedRows: 1}])
-
-        //Run actual function
-
-        const result = await HouseholdServices.updateHouseholdMultiple(id, updates, mockConn)
-
-        //Expect function to run properly
-        expect(mockConn.execute).toHaveBeenCalledWith('UPDATE kabuhayan_db.households SET `condition_type` = ?, `Meralco` = ? WHERE id = ?', ['Needs major repair', 'True', 3])
-        expect(result).toEqual({affectedRows: 1})
-     })
-})
-
-
+    //Expect function to run properly
+    expect(mockConn.execute).toHaveBeenCalledWith(
+      'UPDATE kabuhayan_db.households SET `condition_type` = ?, `Meralco` = ? WHERE id = ?',
+      ['Needs major repair', 'True', 3]
+    );
+    expect(result).toEqual({ affectedRows: 1 });
+  });
+});
 
 describe('Testing deleteHouseholds() functionalities', () => {
   let mockDB;
@@ -366,29 +368,48 @@ describe('Testing deleteHouseholds() functionalities', () => {
     mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //mocks a return for the second execute delete on households
 
     //Mock family Service functions
-    familyServices.getFamilyGivenHousehold.mockResolvedValueOnce({id: 3, head_position: 'Uncle', land_acquisition: 'Expropriation', status_of_occupancy: 'Renter', household_id: 2}); //Assume family record exist with given household_id
-    familyServices.deleteFamily.mockResolvedValueOnce(1)//Assume deleteFamily deletes successfully
+    familyServices.getFamilyGivenHousehold.mockResolvedValueOnce({
+      id: 3,
+      head_position: 'Uncle',
+      land_acquisition: 'Expropriation',
+      status_of_occupancy: 'Renter',
+      household_id: 2,
+    }); //Assume family record exist with given household_id
+    familyServices.deleteFamily.mockResolvedValueOnce(1); //Assume deleteFamily deletes successfully
 
     //run actual functio
     const result = await HouseholdServices.deleteHousehold(id);
 
     //expect actual function logic to be correct
-    expect(mockDB.execute).toHaveBeenNthCalledWith(1,'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',[2]);
-    expect(familyServices.getFamilyGivenHousehold).toHaveBeenCalledWith(2)
-    expect(familyServices.deleteFamily).toHaveBeenCalledWith(3)
-    expect(logSpy).toHaveBeenNthCalledWith(1, 'Family (ID: 3) and its members deleted. Affected members: 1')
-    expect(mockDB.execute).toHaveBeenNthCalledWith(2,'DELETE FROM kabuhayan_db.households WHERE id = ?',[2]);
-    expect(logSpy).toHaveBeenNthCalledWith(2, 'Total Family Members Affected: 1')
+    expect(mockDB.execute).toHaveBeenNthCalledWith(
+      1,
+      'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',
+      [2]
+    );
+    expect(familyServices.getFamilyGivenHousehold).toHaveBeenCalledWith(2);
+    expect(familyServices.deleteFamily).toHaveBeenCalledWith(3);
+    expect(logSpy).toHaveBeenNthCalledWith(
+      1,
+      'Family (ID: 3) and its members deleted. Affected members: 1'
+    );
+    expect(mockDB.execute).toHaveBeenNthCalledWith(
+      2,
+      'DELETE FROM kabuhayan_db.households WHERE id = ?',
+      [2]
+    );
+    expect(logSpy).toHaveBeenNthCalledWith(
+      2,
+      'Total Family Members Affected: 1'
+    );
     expect(result).toBe(1);
   });
 
-  test('Deletes a Household record and its due record but cannot find the family record to delete and return totalAffectedFamilyMembers to be 0', async() => {
+  test('Deletes a Household record and its due record but cannot find the family record to delete and return totalAffectedFamilyMembers to be 0', async () => {
     //test data of function argument
     const id = 2;
 
     //spy console.log
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
 
     //mock database functions
     mockDB.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); //mocks a return for the first execute delete on dues
@@ -402,42 +423,49 @@ describe('Testing deleteHouseholds() functionalities', () => {
     const result = await HouseholdServices.deleteHousehold(id);
 
     //expect actual function logic to be correct
-    expect(mockDB.execute).toHaveBeenNthCalledWith(1,'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',[2]);
-    expect(familyServices.getFamilyGivenHousehold).toHaveBeenCalledWith(2)
-    expect(familyServices.deleteFamily).not.toHaveBeenCalled()
-    expect(logSpy).toHaveBeenNthCalledWith(1, 'No family found for household 2 to delete.')
-    expect(mockDB.execute).toHaveBeenNthCalledWith(2,'DELETE FROM kabuhayan_db.households WHERE id = ?',[2]);
-    expect(logSpy).toHaveBeenNthCalledWith(2, 'Total Family Members Affected: 0')
+    expect(mockDB.execute).toHaveBeenNthCalledWith(
+      1,
+      'DELETE FROM kabuhayan_db.dues WHERE household_id = ?',
+      [2]
+    );
+    expect(familyServices.getFamilyGivenHousehold).toHaveBeenCalledWith(2);
+    expect(familyServices.deleteFamily).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenNthCalledWith(
+      1,
+      'No family found for household 2 to delete.'
+    );
+    expect(mockDB.execute).toHaveBeenNthCalledWith(
+      2,
+      'DELETE FROM kabuhayan_db.households WHERE id = ?',
+      [2]
+    );
+    expect(logSpy).toHaveBeenNthCalledWith(
+      2,
+      'Total Family Members Affected: 0'
+    );
     expect(result).toBe(0);
+  });
 
-  })
-
-  test('Handling of errors', async() => {
-
+  test('Handling of errors', async () => {
     //test data of function argument
-    const id = 4
+    const id = 4;
 
     //mock database functions
-    mockDB.execute.mockImplementationOnce(() => { //mock the first time an .execute() is called, it will throw an error
+    mockDB.execute.mockImplementationOnce(() => {
+      //mock the first time an .execute() is called, it will throw an error
 
-      throw new Error('DB Failure')
-    })
+      throw new Error('DB Failure');
+    });
 
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(()=> {}); //vi.spyOn(console, 'error') - tracks whenever console.error() is called //.mockImplementation(() => {}) - Replaces original function behavior of console.error to do nothing so you can track it properly
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); //vi.spyOn(console, 'error') - tracks whenever console.error() is called //.mockImplementation(() => {}) - Replaces original function behavior of console.error to do nothing so you can track it properly
 
     //run actual function
     const result = await HouseholdServices.deleteHousehold(4);
 
     //expect actual function logic to be correct
-    expect(consoleSpy).toHaveBeenCalledWith('An error occurred:', 'DB Failure')
+    expect(consoleSpy).toHaveBeenCalledWith('An error occurred:', 'DB Failure');
     expect(result).toBeUndefined();
 
-    consoleSpy.mockRestore();//Restore original console behavior
-
-  })
-
-
+    consoleSpy.mockRestore(); //Restore original console behavior
+  });
 });
-
-
-

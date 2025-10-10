@@ -128,6 +128,75 @@ export async function changePassword(id, current_password, new_password) {
   }
 }
 
+// POST '/credentials/reset'
+export async function requestPasswordReset(/* email */) {
+  // change as needed
+  const db = await getDB();
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const result = 1;
+
+    /*
+    valid_tokens table holds the tokens made for pw resets
+    fields:
+        cid - foreign key to credentials table id field (not null)
+        token - the token (not null)
+        expiry_date - datetime of when the token is set to expire (not null)
+    
+    */
+
+    await conn.commit();
+    return { affectedRows: result.affectedRows };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
+// POST '/credentials/reset/:token'
+export async function resetPassword(token, new_password) {
+  const db = await getDB();
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [user] = await conn.query(
+      'SELECT cid, expiry_date FROM reset_tokens WHERE token = ?',
+      [token]
+    );
+
+    if (user[0].expiry_date < new Date()) {
+      throw new Error();
+    }
+
+    const [password] = await conn.query(
+      'SELECT id, password FROM credentials WHERE member_id = ?',
+      [user[0].cid]
+    );
+
+    const hashed_password = await bcrypt.hash(new_password, salt_rounds);
+
+    const [result] = await conn.execute(
+      'UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?',
+      [hashed_password, password[0].id]
+    );
+
+    await conn.commit();
+    return { affectedRows: result.affectedRows };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
 // DELETE '/credentials/:id'
 export async function deleteCredentials(id) {
   const db = await getDB();

@@ -132,3 +132,36 @@ export async function changePassword(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function requestPasswordReset(req, res) {
+  try {
+    const { email } = req.body;
+
+    const result = await CredentialsService.requestPasswordReset(email);
+
+    if (result === 0) {
+      res.status(404).json({ message: `Email cannot be sent: ${email}` }); // change as needed
+    } else {
+      res.status(200).json({ success: true, result });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function resetPassword(req, res) {
+  try {
+    const token = req.params.token;
+    const { new_password } = req.body;
+
+    const result = await CredentialsService.resetPassword(token, new_password);
+
+    if (result === 0) {
+      res.status(404).json({ message: `Not a valid token: ${token}` });
+    } else {
+      res.status(200).json({ success: true, result });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
