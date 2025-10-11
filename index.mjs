@@ -8,6 +8,7 @@ import householdsRouter from './routes/households.routes.js';
 import credentialsRouter from './routes/credentials.routes.js';
 import uploadRouter from './routes/uploads.routes.js';
 import certificationsRouter from './routes/certifications.routes.js';
+import changesRouter from './routes/changes.routes.js';
 import { authenticateApiSecret } from './middlewares/auth.middleware.js';
 import 'dotenv/config';
 
@@ -43,6 +44,7 @@ const startServer = async () => {
     app.use('/credentials', credentialsRouter);
     app.use('/uploads', uploadRouter);
     app.use('/certifications', certificationsRouter);
+    app.use('/changes', changesRouter);
 
     app.get('/', (req, res) => {
       res.status(200).json({
