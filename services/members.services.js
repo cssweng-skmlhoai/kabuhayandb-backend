@@ -1,5 +1,6 @@
 import { getDB } from '../config/connect.js';
 import { createCredentials } from './credentials.services.js';
+import { createChange } from './changes.services.js';
 import {
   updateFamiliesMultiple,
   createFamilies,
@@ -222,21 +223,92 @@ export async function updateMemberInfo(id, payload) {
     return null;
   }
 
+  const admin_id = 1; // placeholder only
+
   const { family_id, household_id } = data;
 
   try {
     await conn.beginTransaction();
 
     if (members && Object.keys(members).length > 0) {
+      const [oldMemberRows] = await conn.query(
+        `SELECT * FROM members WHERE id = ?`,
+        [id]
+      );
+      const oldMember = oldMemberRows[0];
+
       await updateMemberMultiple(id, members, conn);
+
+      for (const [field, newValue] of Object.entries(members)) {
+        const oldValue = oldMember?.[field] ?? null;
+        if (oldValue !== newValue) {
+          await createChange(
+            {
+              admin_id,
+              member_id: id,
+              change_type: 'Update',
+              field_changed: field,
+              old_value: oldValue,
+              new_value: newValue,
+            },
+            conn
+          );
+        }
+      }
     }
 
     if (families && Object.keys(families).length > 0) {
+      const [oldFamilyRows] = await conn.query(
+        `SELECT * FROM families WHERE id = ?`,
+        [family_id]
+      );
+      const oldFamily = oldFamilyRows[0];
+
       await updateFamiliesMultiple(family_id, families, conn);
+
+      for (const [field, newValue] of Object.entries(families)) {
+        const oldValue = oldFamily?.[field] ?? null;
+        if (oldValue !== newValue) {
+          await createChange(
+            {
+              admin_id,
+              member_id: id,
+              change_type: 'Update',
+              field_changed: field,
+              old_value: oldValue,
+              new_value: newValue,
+            },
+            conn
+          );
+        }
+      }
     }
 
     if (households && Object.keys(households).length > 0) {
+      const [oldHouseholdRows] = await conn.query(
+        `SELECT * FROM households WHERE id = ?`,
+        [household_id]
+      );
+      const oldHousehold = oldHouseholdRows[0];
+
       await updateHouseholdMultiple(household_id, households, conn);
+
+      for (const [field, newValue] of Object.entries(households)) {
+        const oldValue = oldHousehold?.[field] ?? null;
+        if (oldValue !== newValue) {
+          await createChange(
+            {
+              admin_id,
+              member_id: id,
+              change_type: 'Update',
+              field_changed: field,
+              old_value: oldValue,
+              new_value: newValue,
+            },
+            conn
+          );
+        }
+      }
     }
 
     if (family_members && Array.isArray(family_members)) {
@@ -244,9 +316,19 @@ export async function updateMemberInfo(id, payload) {
         const { id: family_member_id, update, ...updates } = family_member;
 
         if (!family_member_id) {
-          console.log({ ...updates, family_id, id });
           await createFamilyMember(
             { ...updates, family_id, member_id: id },
+            conn
+          );
+          await createChange(
+            {
+              admin_id,
+              member_id: id,
+              change_type: 'Add',
+              field_changed: 'family_member',
+              old_value: null,
+              new_value: JSON.stringify(updates),
+            },
             conn
           );
           continue;
@@ -254,8 +336,41 @@ export async function updateMemberInfo(id, payload) {
 
         if (update === false && family_member_id) {
           await deleteFamilyMembers(family_member_id, conn);
+          await createChange(
+            {
+              admin_id,
+              member_id: id,
+              change_type: 'Delete',
+              field_changed: 'family_member',
+              old_value: family_member_id,
+              new_value: null,
+            },
+            conn
+          );
         } else if (Object.keys(updates).length > 0) {
+          const [oldFMRows] = await conn.query(
+            `SELECT * FROM family_members WHERE id = ?`,
+            [family_member_id]
+          );
+          const oldFM = oldFMRows[0];
           await updateFamilyMemberMultiple(family_member_id, updates, conn);
+
+          for (const [field, newValue] of Object.entries(updates)) {
+            const oldValue = oldFM?.[field] ?? null;
+            if (oldValue !== newValue) {
+              await createChange(
+                {
+                  admin_id,
+                  member_id: id,
+                  change_type: 'Update',
+                  field_changed: `family_member.${field}`,
+                  old_value: oldValue,
+                  new_value: newValue,
+                },
+                conn
+              );
+            }
+          }
         }
       }
     }
@@ -357,6 +472,8 @@ export async function updateMembers(id, updates) {
     'contact_number',
   ];
 
+  const admin_id = 1; // placeholder only
+
   const keys = Object.keys(updates);
 
   if (keys.length !== 1 || !allowedColumns.includes(keys[0])) {
@@ -380,10 +497,31 @@ export async function updateMembers(id, updates) {
     }
   }
 
+  const [oldRows] = await db.query(
+    `SELECT \`${column}\` FROM kabuhayan_db.members WHERE id = ?`,
+    [id]
+  );
+
+  const oldValue = oldRows[0] ? oldRows[0][column] : null;
+
   const [result] = await db.execute(
     `UPDATE kabuhayan_db.members SET \`${column}\` = ? WHERE id = ?`,
     [value, id]
   );
+
+  if (result.affectedRows > 0 && admin_id) {
+    await createChange(
+      {
+        admin_id,
+        member_id: id,
+        change_type: 'Update',
+        field_changed: column,
+        old_value: oldValue,
+        new_value: value,
+      },
+      null
+    );
+  }
 
   return { affectedRows: result.affectedRows };
 }

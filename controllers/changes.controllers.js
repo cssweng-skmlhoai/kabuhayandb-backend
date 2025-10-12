@@ -42,14 +42,3 @@ export async function getChangesByType(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-
-export async function createChange(req, res) {
-  try {
-    const data = req.body;
-    const created_change = await ChangesService.createChange(data);
-
-    res.status(201).json(created_change);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}

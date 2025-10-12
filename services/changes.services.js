@@ -31,31 +31,54 @@ export async function getChangesByType(type) {
 }
 
 // POST '/changes'
-// export async function createChange(data) {
-//   const db = await getDB();
-//   const { member_id } = data;
+export async function createChange(data, conn) {
+  if (!conn) {
+    conn = await getDB();
+  }
+  const {
+    date,
+    admin_id,
+    member_id,
+    change_type,
+    field_changed,
+    old_value,
+    new_value,
+  } = data;
 
-//   const created_at = new Date();
+  try {
+    await conn.beginTransaction();
 
-//   const [rows] = await db.query(
-//     'SELECT MAX(crn) AS curr_crn FROM certifications'
-//   );
-//   const curr_crn = rows[0]?.curr_crn || 0;
-//   const new_crn = curr_crn + 1;
+    const values = [
+      new Date(date),
+      admin_id,
+      member_id,
+      change_type,
+      field_changed,
+      old_value,
+      new_value,
+    ];
 
-//   const values = [member_id, created_at || null, new_crn];
+    const [rows] = await conn.execute(
+      'INSERT INTO kabuhayan_db.dues (`date`, `admin_id`, `member_id`, `change_type`,  `field_changed`, `old_value`, `new_value`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      values
+    );
 
-//   const [result] = await db.execute(
-//     'INSERT INTO kabuhayan_db.certifications (`member_id`, `created_at`, `crn`) VALUES (?, ?, ?)',
-//     values
-//   );
+    await conn.commit();
 
-//   const created_certification = {
-//     id: result.insertId,
-//     member_id,
-//     created_at,
-//     new_crn,
-//   };
-
-//   return created_certification;
-// }
+    return {
+      id: rows.insertId,
+      date,
+      admin_id,
+      member_id,
+      change_type,
+      field_changed,
+      old_value,
+      new_value,
+    };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    if (conn) conn.release();
+  }
+}
