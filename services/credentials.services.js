@@ -1,5 +1,6 @@
 import { getDB } from './../config/connect.js';
 import bcrypt from 'bcrypt';
+import nodemailer from 'nodemailer';
 
 const salt_rounds = 10;
 
@@ -128,11 +129,51 @@ export async function changePassword(id, current_password, new_password) {
   }
 }
 
+
+    
 // POST '/credentials/reset'
-export async function requestPasswordReset(/* email */) {
+export async function requestPasswordReset(email) {
   // change as needed
   const db = await getDB();
   const conn = await db.getConnection();
+
+  // set up nodemailer
+  const transporter = nodemailer.createTransporter({
+      service: 'gmail',
+      auth: {
+        user: process.env.AUTH_EMAIL, // your@gmail.com
+        pass: process.env.AUTH_PASS // Gmail App Password
+      }
+    });
+
+  // Function to send reset email
+  const sendPasswordResetEmail = async (email, resetToken, userId) => {
+    const resetUrl = `${process.env.CORS_ORIGIN}/reset-password?token=${resetToken}&userId=${userId}`;
+    
+    const mailOptions = {
+      from: process.env.AUTH_EMAIL,
+      to: email,
+      subject: 'Password Reset Request',
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>You requested to reset your password. Click the button below to proceed:</p>
+        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+          Reset Password
+        </a>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('Password reset email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new Error('Failed to send email');
+    }
+  };
+  //end of my part
 
   try {
     await conn.beginTransaction();
@@ -148,11 +189,44 @@ export async function requestPasswordReset(/* email */) {
     
     */
 
+    // start of part
+    
+    // Find user
+    const [userRows] = await db.query(
+      'SELECT id FROM credentials WHERE email = ?',
+      [email]
+    );
+
+    if (userRows.length === 0) {
+      // Don't reveal if email exists - just return success
+      await conn.commit();
+      return { success: true, message: 'Password reset request processed' };
+    }
+    
+    const userId = userRows[0].id;
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString('hex');
+    const hashedToken = await bcrypt.hash(token, 12);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    
+    // Store in database - FIXED SQL (3 values, 3 placeholders)
+    await conn.query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) 
+       VALUES (?, ?, ?)`,
+      [userId, hashedToken, expiresAt]
+    );
+    
+    // Send email
+    await sendPasswordResetEmail(email, token, userId);
+    
     await conn.commit();
-    return { affectedRows: result.affectedRows };
+    return { success: true, message: 'Password reset email sent' };
+      
   } catch (error) {
+    console.error('Forgot password error:', error);
     await conn.rollback();
-    throw error;
+    throw new Error('Failed to process password reset request');
   } finally {
     conn.release();
   }
