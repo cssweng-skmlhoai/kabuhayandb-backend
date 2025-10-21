@@ -1,6 +1,7 @@
 import { getDB } from './../config/connect.js';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 const salt_rounds = 10;
 
@@ -129,8 +130,6 @@ export async function changePassword(id, current_password, new_password) {
   }
 }
 
-
-    
 // POST '/credentials/reset'
 export async function requestPasswordReset(email) {
   // change as needed
@@ -138,20 +137,23 @@ export async function requestPasswordReset(email) {
   const conn = await db.getConnection();
 
   // set up nodemailer
-  const transporter = nodemailer.createTransporter({
-      service: 'gmail',
-      auth: {
-        user: process.env.AUTH_EMAIL, // your@gmail.com
-        pass: process.env.AUTH_PASS // Gmail App Password
-      }
-    });
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: process.env.OAUTH_EMAIL,
+      clientId: process.env.OAUTH_CLIENT_ID,
+      clientSecret: process.env.OAUTH_CLIENT_SECRET,
+      refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+    },
+  });
 
   // Function to send reset email
   const sendPasswordResetEmail = async (email, resetToken, userId) => {
     const resetUrl = `${process.env.CORS_ORIGIN}/reset-password?token=${resetToken}&userId=${userId}`;
-    
+
     const mailOptions = {
-      from: process.env.AUTH_EMAIL,
+      from: process.env.OAUTH_EMAIL,
       to: email,
       subject: 'Password Reset Request',
       html: `
@@ -162,7 +164,7 @@ export async function requestPasswordReset(email) {
         </a>
         <p>This link will expire in 1 hour.</p>
         <p>If you didn't request this, please ignore this email.</p>
-      `
+      `,
     };
 
     try {
@@ -178,19 +180,8 @@ export async function requestPasswordReset(email) {
   try {
     await conn.beginTransaction();
 
-    const result = 1;
-
-    /*
-    valid_tokens table holds the tokens made for pw resets
-    fields:
-        cid - foreign key to credentials table id field (not null)
-        token - the token (not null)
-        expiry_date - datetime of when the token is set to expire (not null)
-    
-    */
-
     // start of part
-    
+
     // Find user
     const [userRows] = await db.query(
       'SELECT id FROM credentials WHERE email = ?',
@@ -202,27 +193,26 @@ export async function requestPasswordReset(email) {
       await conn.commit();
       return { success: true, message: 'Password reset request processed' };
     }
-    
+
     const userId = userRows[0].id;
 
     // Generate reset token
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = await bcrypt.hash(token, 12);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-    
+
     // Store in database - FIXED SQL (3 values, 3 placeholders)
     await conn.query(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) 
+      `INSERT INTO reset_tokens (cid, token, expiry_date) 
        VALUES (?, ?, ?)`,
       [userId, hashedToken, expiresAt]
     );
-    
+
     // Send email
     await sendPasswordResetEmail(email, token, userId);
-    
+
     await conn.commit();
     return { success: true, message: 'Password reset email sent' };
-      
   } catch (error) {
     console.error('Forgot password error:', error);
     await conn.rollback();
