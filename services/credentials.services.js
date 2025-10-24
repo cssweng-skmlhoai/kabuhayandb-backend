@@ -150,7 +150,7 @@ export async function requestPasswordReset(email) {
 
   // Function to send reset email
   const sendPasswordResetEmail = async (email, resetToken, userId) => {
-    const resetUrl = `${process.env.CORS_ORIGIN}/reset-password?token=${resetToken}&userId=${userId}`;
+    const resetUrl = `${process.env.CORS_ORIGIN}/reset-password/${resetToken}`;
 
     const mailOptions = {
       from: process.env.OAUTH_EMAIL,
@@ -231,7 +231,7 @@ export async function resetPassword(token, new_password) {
     await conn.beginTransaction();
 
     const [user] = await conn.query(
-      'SELECT cid, expiry_date FROM reset_tokens WHERE token = ?',
+      'SELECT * FROM reset_tokens WHERE token = ?',
       [token]
     );
 
@@ -259,6 +259,23 @@ export async function resetPassword(token, new_password) {
   } finally {
     conn.release();
   }
+}
+
+// GET '/credentials/reset/:token'
+export async function verifyToken(token) {
+  const db = await getDB();
+  const [tokenlist] = await db.query(
+    'SELECT * FROM reset_tokens WHERE token = ?',
+    [token]
+  );
+  const returnedToken = tokenlist[0];
+
+  if (!returnedToken) return null;
+  if (returnedToken.expiry_date < new Date()) {
+    throw new Error();
+  }
+
+  return returnedToken;
 }
 
 // DELETE '/credentials/:id'

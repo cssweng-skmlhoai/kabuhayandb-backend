@@ -165,3 +165,19 @@ export async function resetPassword(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function verifyToken(req, res) {
+  try {
+    const token = req.params.token;
+
+    const result = await CredentialsService.verifyToken(token);
+
+    if (!result) {
+      res.status(404).json({ message: `Not a valid token: ${token}` });
+    } else {
+      res.status(200).json({ success: true });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
