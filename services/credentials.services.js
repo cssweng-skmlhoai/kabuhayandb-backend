@@ -175,12 +175,9 @@ export async function requestPasswordReset(email) {
       throw new Error('Failed to send email');
     }
   };
-  //end of my part
 
   try {
     await conn.beginTransaction();
-
-    // start of part
 
     // Find user
     const [userRows] = await db.query(
