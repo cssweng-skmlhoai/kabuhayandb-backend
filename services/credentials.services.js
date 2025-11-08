@@ -248,6 +248,11 @@ export async function resetPassword(token, new_password) {
       [hashed_password, password[0].id]
     );
 
+    const [tkn] = await conn.execute(
+      'UPDATE reset_tokens SET is_used = 1 WHERE cid = ?',
+      [user[0].cid]
+    );
+
     await conn.commit();
     return { affectedRows: result.affectedRows };
   } catch (error) {
@@ -262,7 +267,7 @@ export async function resetPassword(token, new_password) {
 export async function verifyToken(token) {
   const db = await getDB();
   const [tokenlist] = await db.query(
-    'SELECT * FROM reset_tokens WHERE token = ?',
+    'SELECT * FROM reset_tokens WHERE token = ? AND is_used = null',
     [token]
   );
   const returnedToken = tokenlist[0];
