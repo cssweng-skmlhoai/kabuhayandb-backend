@@ -359,3 +359,75 @@ export async function deleteDues(id) {
 
   return result.affectedRows;
 }
+
+// UNPAID DUES REPORT
+export async function getUnpaidDuesReport(filters = {}) {
+  const db = await getDB();
+
+  let query = `
+    SELECT
+      m.first_name,
+      m.last_name,
+      h.block_no,
+      h.lot_no,
+      d.due_type,
+      d.amount,
+      d.amount_paid,
+      (d.amount - COALESCE(d.amount_paid, 0)) AS balance,
+      d.due_date
+    FROM dues d
+    JOIN households h ON d.household_id = h.id
+    JOIN families f ON f.household_id = h.id
+    JOIN (
+      SELECT m1.*
+      FROM members m1
+      INNER JOIN (
+        SELECT family_id, MIN(id) AS min_id
+        FROM members
+        GROUP BY family_id
+      ) m2 ON m1.id = m2.min_id
+    ) m ON m.family_id = f.id
+    WHERE d.status = "Unpaid"
+  `;
+
+  const params = [];
+
+  // Apply filters
+  if (filters.blockNo) {
+    query += ` AND h.block_no = ?`;
+    params.push(filters.blockNo);
+  }
+
+  if (filters.lotNo) {
+    query += ` AND h.lot_no = ?`;
+    params.push(filters.lotNo);
+  }
+
+  const [rows] = await db.query(query, params);
+
+  // Group by household (or by member + address)
+  const grouped = {};
+  rows.forEach(row => {
+    const memberName = `${row.first_name} ${row.last_name}`;
+    const filterValue = `Blk ${row.block_no}, Lot ${row.lot_no}`;
+    const key = `${memberName}|${filterValue}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        member_name: memberName,
+        filter_value: filterValue,
+        dues: []
+      };
+    }
+
+    grouped[key].dues.push({
+      due_type: row.due_type,
+      amount_due: parseFloat(row.amount),
+      amount_paid: parseFloat(row.amount_paid || 0),
+      balance: parseFloat(row.balance),
+      due_date: row.due_date
+    });
+  });
+
+  return Object.values(grouped);
+}

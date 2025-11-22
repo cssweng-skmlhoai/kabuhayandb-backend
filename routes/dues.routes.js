@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticateApiSecret);
 
 router.get('/report', DuesController.getDuesReport);
+router.get('/unpaidDuesReport', DuesController.getUnpaidDuesReport);
 router.get('/member/:id', DuesController.getDuesByMemberId);
 
 // generic id routes

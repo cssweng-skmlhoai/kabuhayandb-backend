@@ -45,6 +45,16 @@ export async function getDuesReport(req, res) {
   }
 }
 
+export async function getUnpaidDuesReport(req, res) {
+  try {
+    const unpaid_dues_report = await DuesService.getUnpaidDuesReport(); // ← this is an ARRAY
+    res.status(200).json(unpaid_dues_report); // ✅ send array directly
+  } catch (error) {
+    console.error("Unpaid dues report error:", error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function createDues(req, res) {
   try {
     const data = req.body;
