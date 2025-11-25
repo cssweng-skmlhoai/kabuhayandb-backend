@@ -2,29 +2,38 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { getDB } from '../../config/connect.js';
 import * as CredentialsService from '../../services/credentials.services.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 vi.mock('../../config/connect.js', () => ({
-
-  getDB: vi.fn().mockResolvedValue({//Mock SQL queries of getDB
-      query: vi.fn(),
-      execute: vi.fn(),
-    getConnection: vi.fn().mockResolvedValue({//getDB also returns an object of getConnections() that has its own set of queries and executes
-      query: vi.fn(),//Mock those as well
+  getDB: vi.fn().mockResolvedValue({
+    //Mock SQL queries of getDB
+    query: vi.fn(),
+    execute: vi.fn(),
+    getConnection: vi.fn().mockResolvedValue({
+      //getDB also returns an object of getConnections() that has its own set of queries and executes
+      query: vi.fn(), //Mock those as well
       execute: vi.fn(),
       beginTransaction: vi.fn(), //And also the function unique to getConnections
       commit: vi.fn(),
       rollback: vi.fn(),
-      release: vi.fn()
-    })
-  })
-
-}))
+      release: vi.fn(),
+    }),
+  }),
+}));
 
 //For mocking the hash function
 vi.mock('bcrypt', () => ({
   default: {
     hash: vi.fn(),
     compare: vi.fn(),
+  },
+}));
+
+vi.mock('crypto', () => ({
+  default: {
+    randomBytes: vi.fn(() => ({
+      toString: vi.fn().mockReturnValue('mock-token'),
+    })),
   },
 }));
 
@@ -381,77 +390,92 @@ describe('Testing deleteCredentials() functionalities', () => {
 });
 
 describe('Testing changePassword() functionalities', () => {
-
   let mockDB;
-    let mockConnection;
+  let mockConnection;
 
-    beforeEach(async () => {
-      vi.clearAllMocks()
-      mockDB = await getDB();
-      mockConnection = await mockDB.getConnection();
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockDB = await getDB();
+    mockConnection = await mockDB.getConnection();
+  });
 
-    });
-
-  test('Successfully changes password by passing the correct old passowrd', async() => {
-
-    const id = 2
-    const current_password = 'old_password'
-    const new_password = 'new_password'
+  test('Successfully changes password by passing the correct old passowrd', async () => {
+    const id = 2;
+    const current_password = 'old_password';
+    const new_password = 'new_password';
 
     const mock_data = {
       id: 2,
-      password: 'Hashed_old_password'
-    }
+      password: 'Hashed_old_password',
+    };
 
-    mockConnection.query.mockResolvedValueOnce([[mock_data]])
-    bcrypt.compare.mockResolvedValueOnce(true)//assume old password sent is correct
-    bcrypt.hash.mockResolvedValueOnce('Hashed_new_password')
+    mockConnection.query.mockResolvedValueOnce([[mock_data]]);
+    bcrypt.compare.mockResolvedValueOnce(true); //assume old password sent is correct
+    bcrypt.hash.mockResolvedValueOnce('Hashed_new_password');
 
-    mockConnection.execute.mockResolvedValueOnce([{affectedRows: 1}])
+    mockConnection.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
 
-    const result = await CredentialsService.changePassword(id, current_password, new_password)
+    const result = await CredentialsService.changePassword(
+      id,
+      current_password,
+      new_password
+    );
 
-    expect(mockConnection.beginTransaction).toBeCalled()
+    expect(mockConnection.beginTransaction).toBeCalled();
 
-    expect(mockConnection.query).toBeCalledWith('SELECT id, password FROM credentials WHERE member_id = ?', [2])
+    expect(mockConnection.query).toBeCalledWith(
+      'SELECT id, password FROM credentials WHERE member_id = ?',
+      [2]
+    );
 
-    expect(bcrypt.compare).toHaveBeenCalledWith(current_password, mock_data.password)
+    expect(bcrypt.compare).toHaveBeenCalledWith(
+      current_password,
+      mock_data.password
+    );
 
-    expect(mockConnection.execute).toBeCalledWith('UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?', ['Hashed_new_password', 2])
+    expect(mockConnection.execute).toBeCalledWith(
+      'UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?',
+      ['Hashed_new_password', 2]
+    );
 
-    expect(mockConnection.commit).toBeCalled()
+    expect(mockConnection.commit).toBeCalled();
 
-    expect(result).toEqual({affectedRows: 1})
+    expect(result).toEqual({ affectedRows: 1 });
 
-    expect(mockConnection.release).toBeCalled()
+    expect(mockConnection.release).toBeCalled();
+  });
 
-  })
-
-  test('Fails in changing password by passing the wrong old passowrd', async() => {
-
-    const id = 2
-    const current_password = 'wrong_password'
-    const new_password = 'new_password'
+  test('Fails in changing password by passing the wrong old passowrd', async () => {
+    const id = 2;
+    const current_password = 'wrong_password';
+    const new_password = 'new_password';
 
     const mock_data = {
       id: 2,
-      password: 'Hashed_old_password'
-    }
+      password: 'Hashed_old_password',
+    };
 
-    mockConnection.query.mockResolvedValueOnce([[mock_data]])
-    bcrypt.compare.mockResolvedValueOnce(false)//assume old password sent is wrong
+    mockConnection.query.mockResolvedValueOnce([[mock_data]]);
+    bcrypt.compare.mockResolvedValueOnce(false); //assume old password sent is wrong
 
-    await expect(CredentialsService.changePassword(id, current_password, new_password)).rejects.toThrow()
-    
-    expect(mockConnection.beginTransaction).toBeCalled()
+    await expect(
+      CredentialsService.changePassword(id, current_password, new_password)
+    ).rejects.toThrow();
 
-    expect(mockConnection.query).toBeCalledWith('SELECT id, password FROM credentials WHERE member_id = ?', [2])
+    expect(mockConnection.beginTransaction).toBeCalled();
 
-    expect(bcrypt.compare).toHaveBeenCalledWith(current_password, mock_data.password)
+    expect(mockConnection.query).toBeCalledWith(
+      'SELECT id, password FROM credentials WHERE member_id = ?',
+      [2]
+    );
 
-    expect(mockConnection.rollback).toBeCalled()
+    expect(bcrypt.compare).toHaveBeenCalledWith(
+      current_password,
+      mock_data.password
+    );
 
-  })
+    expect(mockConnection.rollback).toBeCalled();
+  });
 
   /*
   test('Fails in changing password by passing an ID to an empty', async() => {
@@ -477,9 +501,79 @@ describe('Testing changePassword() functionalities', () => {
 
   })
   */
+});
 
+describe('Testing createPasswordResetToken() functionalities', () => {
+  let mockDB;
 
-})
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockDB = await getDB();
+  });
+
+  test('returns null when no credential matches identifier', async () => {
+    mockDB.query.mockResolvedValueOnce([[]]);
+
+    const result = await CredentialsService.createPasswordResetToken(
+      'missing@example.com'
+    );
+
+    expect(mockDB.query).toHaveBeenCalledWith(
+      'SELECT * FROM credentials WHERE username = ? OR email = ?',
+      ['missing@example.com', 'missing@example.com']
+    );
+    expect(result).toBeNull();
+  });
+
+  test('generates token when identifier matches username', async () => {
+    const mockUser = { id: 1, username: 'juan.dc', email: null };
+    mockDB.query
+      .mockResolvedValueOnce([[mockUser]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const result = await CredentialsService.createPasswordResetToken('juan.dc');
+
+    expect(crypto.randomBytes).toHaveBeenCalledWith(32);
+    expect(mockDB.query).toHaveBeenNthCalledWith(
+      1,
+      'SELECT * FROM credentials WHERE username = ? OR email = ?',
+      ['juan.dc', 'juan.dc']
+    );
+    expect(mockDB.query).toHaveBeenNthCalledWith(
+      2,
+      'UPDATE credentials SET reset_token=?, reset_token_expiry=? WHERE id=?',
+      ['mock-token', expect.any(Date), 1]
+    );
+    expect(result).toEqual({ user: mockUser, token: 'mock-token' });
+  });
+
+  test('generates token when identifier matches email', async () => {
+    const mockUser = {
+      id: 2,
+      username: 'test.user',
+      email: 'charlesxxavier30@gmail.com',
+    };
+    mockDB.query
+      .mockResolvedValueOnce([[mockUser]])
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const result = await CredentialsService.createPasswordResetToken(
+      'charlesxxavier30@gmail.com'
+    );
+
+    expect(mockDB.query).toHaveBeenNthCalledWith(
+      1,
+      'SELECT * FROM credentials WHERE username = ? OR email = ?',
+      ['charlesxxavier30@gmail.com', 'charlesxxavier30@gmail.com']
+    );
+    expect(mockDB.query).toHaveBeenNthCalledWith(
+      2,
+      'UPDATE credentials SET reset_token=?, reset_token_expiry=? WHERE id=?',
+      ['mock-token', expect.any(Date), 2]
+    );
+    expect(result).toEqual({ user: mockUser, token: 'mock-token' });
+  });
+});
 
 describe('Testing verifyLogin() functionalities', () => {
   let mockDB;

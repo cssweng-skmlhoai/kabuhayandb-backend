@@ -5,6 +5,7 @@ import * as FamilyService from '../../services/families.services.js';
 import * as HouseholdService from '../../services/households.services.js';
 import * as MembersService from '../../services/members.services.js';
 import * as FamilyMemberService from '../../services/family_members.services.js';
+import * as CredentialsService from '../../services/credentials.services.js';
 
 vi.mock('../../config/connect.js', () => ({
   getDB: vi.fn().mockResolvedValue({
@@ -41,6 +42,10 @@ vi.mock('../../services/family_members.services.js', () => ({
   updateFamilyMemberMultiple: vi.fn(),
   createFamilyMember: vi.fn(),
   deleteFamilyMembers: vi.fn(),
+}));
+
+vi.mock('../../services/credentials.services.js', () => ({
+  createCredentials: vi.fn(),
 }));
 
 describe('Testing getMembers() funtionalities', () => {
@@ -220,7 +225,7 @@ describe('Testing getMembersHome() functionalities', () => {
     FROM members m
     JOIN families f ON m.family_id = f.id
     JOIN households h ON f.household_id = h.id
-    LEFT JOIN credentials c on c.member_id = m.id
+    LEFT JOIN credentials c ON c.member_id = m.id
   `);
 
     expect(result).toBe(mock_members);
@@ -347,6 +352,13 @@ describe('Testing createMemberInfo() functionalities', () => {
 
     mockConnection.execute.mockResolvedValueOnce([{ insertId: 1 }]); //Mock execute in createMembers
 
+    CredentialsService.createCredentials.mockResolvedValueOnce({
+      id: 1,
+      member_id: 1,
+      username: 'radzig_kobyla',
+      pfp: null,
+    });
+
     //run function
     const result = await MembersService.createMemberInfo(data);
 
@@ -434,6 +446,10 @@ describe('Testing createMemberInfo() functionalities', () => {
           educational_attainment: 'Highschool',
         },
       ],
+      credentials: {
+        username: 'radzig_kobyla',
+        password: expect.any(String),
+      },
     });
 
     expect(mockConnection.release).toBeCalled();
@@ -660,7 +676,7 @@ describe('Testing getMemberInfoById() functionalities', () => {
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
-      JOIN credentials c ON c.member_id = m.id
+      LEFT JOIN credentials c ON c.member_id = m.id
       WHERE m.id = ?;
     `,
       [2]
@@ -725,10 +741,12 @@ describe('Testing getMemberInfoById() functionalities', () => {
         h.Maynilad,
         h.Septic_Tank,
         f.land_acquisition,
-        f.status_of_occupancy
+        f.status_of_occupancy,
+        c.pfp
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
+      LEFT JOIN credentials c ON c.member_id = m.id
       WHERE m.id = ?;
     `,
       [2]

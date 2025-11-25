@@ -114,3 +114,7 @@ CREATE TABLE `kabuhayan_db`.`credentials` (
   PRIMARY KEY (`id`),
   FOREIGN KEY (`member_id`) REFERENCES `members` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE kabuhayan_db.credentials
+ADD COLUMN reset_token VARCHAR(255),
+ADD COLUMN reset_token_expiry DATETIME;

@@ -1,5 +1,6 @@
 import { getDB } from './../config/connect.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 const salt_rounds = 10;
 
@@ -158,4 +159,58 @@ export async function verifyLogin(username, password) {
   delete user.password;
 
   return user;
+}
+
+export async function verifyResetToken(token) {
+  const db = await getDB();
+
+  const [rows] = await db.query(
+    'SELECT * FROM credentials WHERE reset_token = ? AND reset_token_expiry > NOW()',
+    [token]
+  );
+
+  return rows[0] || null;
+}
+
+export async function resetPasswordWithToken(token, new_password) {
+  const db = await getDB();
+
+  const [rows] = await db.query(
+    'SELECT * FROM credentials WHERE reset_token=? AND reset_token_expiry > NOW()',
+    [token]
+  );
+
+  if (!rows.length) return false;
+
+  const user = rows[0];
+  const hashed = await bcrypt.hash(new_password, 10);
+
+  await db.query(
+    'UPDATE credentials SET password=?, reset_token=NULL, reset_token_expiry=NULL WHERE id=?',
+    [hashed, user.id]
+  );
+
+  return true;
+}
+
+export async function createPasswordResetToken(emailOrUsername) {
+  const db = await getDB();
+
+  const [rows] = await db.query(
+    'SELECT * FROM credentials WHERE username = ? OR email = ?',
+    [emailOrUsername, emailOrUsername]
+  );
+
+  if (!rows.length) return null;
+
+  const user = rows[0];
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+  await db.query(
+    'UPDATE credentials SET reset_token=?, reset_token_expiry=? WHERE id=?',
+    [token, expiry, user.id]
+  );
+
+  return { user, token };
 }

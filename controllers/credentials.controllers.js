@@ -1,4 +1,5 @@
 import * as CredentialsService from '../services/credentials.services.js';
+import { transporter } from '../config/email.js';
 
 export async function getCredentials(req, res) {
   try {
@@ -128,6 +129,92 @@ export async function changePassword(req, res) {
     } else {
       res.status(200).json({ success: true, result });
     }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function verifyResetToken(req, res) {
+  try {
+    const { token } = req.query;
+
+    const user = await CredentialsService.verifyResetToken(token);
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: 'Invalid or expired reset token.' });
+    }
+
+    res.status(200).json({ message: 'Valid reset token.', user_id: user.id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function requestPasswordReset(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const data = await CredentialsService.createPasswordResetToken(email);
+
+    if (!data) {
+      return res.status(200).json({
+        message:
+          'If the email exists on file, a password reset link has been sent.',
+      });
+    }
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${data.token}`;
+
+    const mailOptions = {
+      from: `"SKMLHOAI" <${process.env.OAUTH_EMAIL}>`,
+      to: email,
+      subject: 'Password Reset',
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click this link:</p>
+        <a href="${resetLink}">${resetLink}</a>
+        <p>Expires in 15 minutes.</p>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('[PasswordReset] Mail sent', {
+      to: email,
+      messageId: info?.messageId,
+    });
+
+    return res.status(200).json({ message: 'Reset email sent', resetLink });
+  } catch (error) {
+    console.error('[PasswordReset] Failed to send reset email:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function confirmPasswordReset(req, res) {
+  try {
+    const { token, new_password } = req.body;
+
+    if (!token || !new_password) {
+      return res.status(400).json({ message: 'Missing token or password' });
+    }
+
+    const success = await CredentialsService.resetPasswordWithToken(
+      token,
+      new_password
+    );
+
+    if (!success) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
