@@ -17,6 +17,7 @@ const startServer = async () => {
   try {
     await initDB();
     console.log('Database initialized');
+
     const allowedOrigins = [
       'http://localhost:5173',
       process.env.IP_SAFE,
@@ -34,13 +35,14 @@ const startServer = async () => {
     app.use(json());
     app.use(urlencoded({ extended: true }));
 
+    app.use('/credentials', credentialsRouter);
+
     app.use(authenticateApiSecret);
 
     app.use('/dues', duesRouter);
     app.use('/members', membersRouter);
     app.use('/families', familiesRouter);
     app.use('/households', householdsRouter);
-    app.use('/credentials', credentialsRouter);
     app.use('/uploads', uploadRouter);
     app.use('/certifications', certificationsRouter);
 
