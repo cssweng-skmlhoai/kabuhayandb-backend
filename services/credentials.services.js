@@ -150,7 +150,7 @@ export async function requestPasswordReset(email) {
 
   // Function to send reset email
   const sendPasswordResetEmail = async (email, resetToken, userId) => {
-    const resetUrl = `${process.env.CORS_ORIGIN}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.CORS_ORIGIN}reset-password/?token=${resetToken}`;
 
     const mailOptions = {
       from: process.env.OAUTH_EMAIL,
@@ -195,8 +195,8 @@ export async function requestPasswordReset(email) {
 
     // Generate reset token
     const token = crypto.randomBytes(32).toString('hex');
-    const hashedToken = await bcrypt.hash(token, 12);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     // Store in database - FIXED SQL (3 values, 3 placeholders)
     await conn.query(
@@ -227,17 +227,15 @@ export async function resetPassword(token, new_password) {
   try {
     await conn.beginTransaction();
 
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
     const [user] = await conn.query(
-      'SELECT * FROM reset_tokens WHERE token = ?',
-      [token]
+      'SELECT * FROM reset_tokens WHERE token = ? AND is_used IS NULL AND expiry_date > NOW()',
+      [hashedToken]
     );
 
-    if (user[0].expiry_date < new Date()) {
-      throw new Error();
-    }
-
     const [password] = await conn.query(
-      'SELECT id, password FROM credentials WHERE member_id = ?',
+      'SELECT id, password FROM credentials WHERE id = ?',
       [user[0].cid]
     );
 
@@ -266,16 +264,16 @@ export async function resetPassword(token, new_password) {
 // GET '/credentials/reset/:token'
 export async function verifyToken(token) {
   const db = await getDB();
+
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
   const [tokenlist] = await db.query(
-    'SELECT * FROM reset_tokens WHERE token = ? AND is_used = null',
-    [token]
+    'SELECT * FROM reset_tokens WHERE token = ? AND is_used IS NULL AND expiry_date > NOW()',
+    [hashedToken]
   );
   const returnedToken = tokenlist[0];
 
   if (!returnedToken) return null;
-  if (returnedToken.expiry_date < new Date()) {
-    throw new Error();
-  }
 
   return returnedToken;
 }

@@ -18,7 +18,7 @@ router.get('/', CredentialsController.getCredentials);
 router.post('/', CredentialsController.createCredentials);
 
 router.post('/reset', CredentialsController.requestPasswordReset);
-router.post('/reset/:token', CredentialsController.resetPassword);
-router.get('/reset/:token', CredentialsController.verifyToken);
+router.post('/reset/confirm', CredentialsController.resetPassword);
+router.get('/reset/verify', CredentialsController.verifyToken);
 
 export default router;

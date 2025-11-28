@@ -151,8 +151,7 @@ export async function requestPasswordReset(req, res) {
 
 export async function resetPassword(req, res) {
   try {
-    const token = req.params.token;
-    const { new_password } = req.body;
+    const { token, new_password } = req.body;
 
     const result = await CredentialsService.resetPassword(token, new_password);
 
@@ -168,7 +167,7 @@ export async function resetPassword(req, res) {
 
 export async function verifyToken(req, res) {
   try {
-    const token = req.params.token;
+    const token = req.query.token;
 
     const result = await CredentialsService.verifyToken(token);
 
