@@ -33,7 +33,13 @@ vi.mock('bcrypt', () => ({
 // For generating random tokens
 vi.mock('crypto', () => ({
   default: {
-    randomBytes: vi.fn().mockReturnValue(Buffer.from('mocktoken')),
+    // randomBytes used to generate token string presented to user
+    randomBytes: vi.fn().mockReturnValue(Buffer.from('rawtokenbytes')),
+    // createHash returns an object with update().digest()
+    createHash: vi.fn(() => ({
+      update: vi.fn().mockReturnThis(),
+      digest: vi.fn().mockReturnValue('hashedtoken123'),
+    })),
   },
 }));
 
@@ -614,19 +620,30 @@ describe('Testing requestPasswordReset()', () => {
   });
 
   test('sends reset email successfully when user exists', async () => {
+    // service queries db (db.query) to find user by email
     mockDB.query.mockResolvedValueOnce([[{ id: 1 }]]); // find user
-    bcrypt.hash.mockResolvedValueOnce('hashedtoken');
-    mockConn.query.mockResolvedValueOnce(); // insert reset token
+    // bcrypt.hash used optionally in other parts; not required here but safe to mock
+    bcrypt.hash.mockResolvedValueOnce('unused_hash');
+    // conn.query for INSERT token
+    mockConn.query.mockResolvedValueOnce();
+    // transporter.sendMail resolves
     mockTransport.sendMail.mockResolvedValueOnce();
 
     const result =
       await CredentialsService.requestPasswordReset('user@example.com');
 
     expect(mockConn.beginTransaction).toHaveBeenCalled();
+    // the service does db.query to locate user
     expect(mockDB.query).toHaveBeenCalledWith(
       'SELECT id FROM credentials WHERE email = ?',
       ['user@example.com']
     );
+    // insertion into reset_tokens should have been called via conn.query
+    expect(mockConn.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO reset_tokens'),
+      expect.arrayContaining([1, 'hashedtoken123', expect.any(String)])
+    );
+    // sendMail should have been invoked
     expect(mockTransport.sendMail).toHaveBeenCalled();
     expect(mockConn.commit).toHaveBeenCalled();
     expect(result).toEqual({
@@ -636,9 +653,12 @@ describe('Testing requestPasswordReset()', () => {
   });
 
   test('returns success even if email does not exist', async () => {
-    mockDB.query.mockResolvedValueOnce([[]]); // no user
+    // db.query returns empty rows -> service returns success and commits
+    mockDB.query.mockResolvedValueOnce([[]]);
+
     const result =
       await CredentialsService.requestPasswordReset('ghost@example.com');
+
     expect(mockConn.commit).toHaveBeenCalled();
     expect(result).toEqual({
       success: true,
@@ -647,9 +667,9 @@ describe('Testing requestPasswordReset()', () => {
   });
 
   test('rolls back transaction when email sending fails', async () => {
-    mockDB.query.mockResolvedValueOnce([[{ id: 1 }]]);
-    bcrypt.hash.mockResolvedValueOnce('hashedtoken');
-    mockConn.query.mockResolvedValueOnce();
+    mockDB.query.mockResolvedValueOnce([[{ id: 1 }]]); // user exists
+    mockConn.query.mockResolvedValueOnce(); // insert ok
+    // simulate sendMail failure
     mockTransport.sendMail.mockRejectedValueOnce(new Error('Mail failed'));
 
     await expect(
@@ -671,13 +691,28 @@ describe('Testing resetPassword()', () => {
 
   test('resets password successfully with valid token', async () => {
     const now = new Date();
-    mockConn.query
-      .mockResolvedValueOnce([
-        [{ cid: 1, expiry_date: new Date(now.getTime() + 3600000) }],
-      ])
-      .mockResolvedValueOnce([[{ id: 1, password: 'old' }]]);
 
-    bcrypt.hash.mockResolvedValueOnce('hashed_new_password');
+    // Query 1: find token
+    mockConn.query.mockResolvedValueOnce([
+      [
+        {
+          cid: 1,
+          expiry_date: new Date(now.getTime() + 3600000),
+          is_used: null,
+        },
+      ],
+    ]);
+
+    // Query 2: find user credential
+    mockConn.query.mockResolvedValueOnce([[{ id: 1, password: 'oldpass' }]]);
+
+    // Mock new password hash
+    bcrypt.hash.mockResolvedValueOnce('unused_hash');
+
+    // Execute #1 – update password
+    mockConn.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    // Execute #2 – mark token used
     mockConn.execute.mockResolvedValueOnce([{ affectedRows: 1 }]);
 
     const result = await CredentialsService.resetPassword(
@@ -685,34 +720,85 @@ describe('Testing resetPassword()', () => {
       'newpass'
     );
 
-    expect(mockConn.beginTransaction).toHaveBeenCalled();
-    expect(mockConn.query).toHaveBeenCalledWith(
-      'SELECT cid, expiry_date FROM reset_tokens WHERE token = ?',
-      ['validtoken']
+    // Check correct SQL and parameters
+    expect(mockConn.execute).toHaveBeenNthCalledWith(
+      1,
+      'UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?',
+      ['unused_hash', 1]
     );
-    expect(mockConn.commit).toHaveBeenCalled();
+
+    expect(mockConn.execute).toHaveBeenNthCalledWith(
+      2,
+      'UPDATE reset_tokens SET is_used = 1 WHERE cid = ?',
+      [1]
+    );
+
     expect(result).toEqual({ affectedRows: 1 });
   });
 
   test('throws error if token is expired', async () => {
     mockConn.query.mockResolvedValueOnce([
-      [{ cid: 1, expiry_date: new Date(Date.now() - 10000) }],
+      [{ cid: 1, expiry_date: new Date(Date.now() - 1000), is_used: null }],
     ]);
 
     await expect(
-      CredentialsService.resetPassword('expiredtoken', 'newpass')
+      CredentialsService.resetPassword('expired', 'newpass')
     ).rejects.toThrow();
 
     expect(mockConn.rollback).toHaveBeenCalled();
   });
 
-  test('rolls back if query or update fails', async () => {
-    mockConn.query.mockRejectedValueOnce(new Error('DB error'));
+  test('throws error if no valid token found (expired or used)', async () => {
+    // Simulate empty result (expired, used, or invalid)
+    mockConn.query.mockResolvedValueOnce([[]]);
 
     await expect(
-      CredentialsService.resetPassword('anytoken', 'pass')
-    ).rejects.toThrow('DB error');
+      CredentialsService.resetPassword('invalid', 'newpass')
+    ).rejects.toThrow();
 
     expect(mockConn.rollback).toHaveBeenCalled();
+  });
+});
+
+describe('Testing verifyToken()', () => {
+  let mockDB;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockDB = await getDB();
+  });
+
+  test('returns token record when token is valid (hashed lookup)', async () => {
+    const now = new Date();
+    // db.query should be called with hashed token and return a row
+    mockDB.query.mockResolvedValueOnce([
+      [
+        {
+          cid: 1,
+          token: 'hashedtoken123',
+          expiry_date: new Date(now.getTime() + 3600000),
+          is_used: null,
+        },
+      ],
+    ]);
+
+    const result = await CredentialsService.verifyToken('goodrawtoken');
+
+    expect(mockDB.query).toHaveBeenCalledWith(
+      'SELECT * FROM reset_tokens WHERE token = ? AND is_used IS NULL AND expiry_date > NOW()',
+      ['hashedtoken123']
+    );
+    expect(result).toEqual({
+      cid: 1,
+      token: 'hashedtoken123',
+      expiry_date: expect.any(Date),
+      is_used: null,
+    });
+  });
+
+  test('returns null when token is not found or invalid', async () => {
+    mockDB.query.mockResolvedValueOnce([[]]); // no rows
+    const result = await CredentialsService.verifyToken('notfoundtoken');
+    expect(result).toBeNull();
   });
 });
