@@ -366,6 +366,7 @@ export async function getUnpaidDuesReport(filters = {}) {
 
   let query = `
     SELECT
+      h.id AS household_no,
       m.first_name,
       m.last_name,
       h.block_no,
@@ -414,6 +415,7 @@ export async function getUnpaidDuesReport(filters = {}) {
 
     if (!grouped[key]) {
       grouped[key] = {
+        household_no: row.household_no,
         member_name: memberName,
         filter_value: filterValue,
         dues: []
