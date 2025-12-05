@@ -1,5 +1,7 @@
 import { getDB } from './../config/connect.js';
 import bcrypt from 'bcrypt';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 const salt_rounds = 10;
 
@@ -126,6 +128,154 @@ export async function changePassword(id, current_password, new_password) {
   } finally {
     conn.release();
   }
+}
+
+// POST '/credentials/reset'
+export async function requestPasswordReset(email) {
+  // change as needed
+  const db = await getDB();
+  const conn = await db.getConnection();
+
+  // set up nodemailer
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: process.env.OAUTH_EMAIL,
+      clientId: process.env.OAUTH_CLIENT_ID,
+      clientSecret: process.env.OAUTH_CLIENT_SECRET,
+      refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+    },
+  });
+
+  // Function to send reset email
+  const sendPasswordResetEmail = async (email, resetToken, userId) => {
+    const resetUrl = `${process.env.CORS_ORIGIN}reset-password/?token=${resetToken}`;
+
+    const mailOptions = {
+      from: process.env.OAUTH_EMAIL,
+      to: email,
+      subject: 'Password Reset Request',
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>You requested to reset your password. Click the button below to proceed:</p>
+        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+          Reset Password
+        </a>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('Password reset email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new Error('Failed to send email');
+    }
+  };
+
+  try {
+    await conn.beginTransaction();
+
+    // Find user
+    const [userRows] = await db.query(
+      'SELECT id FROM credentials WHERE email = ?',
+      [email]
+    );
+
+    if (userRows.length === 0) {
+      // Don't reveal if email exists - just return success
+      await conn.commit();
+      return { success: true, message: 'Password reset request processed' };
+    }
+
+    const userId = userRows[0].id;
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    // Store in database - FIXED SQL (3 values, 3 placeholders)
+    await conn.query(
+      `INSERT INTO reset_tokens (cid, token, expiry_date) 
+       VALUES (?, ?, ?)`,
+      [userId, hashedToken, expiresAt]
+    );
+
+    // Send email
+    await sendPasswordResetEmail(email, token, userId);
+
+    await conn.commit();
+    return { success: true, message: 'Password reset email sent' };
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    await conn.rollback();
+    throw new Error('Failed to process password reset request');
+  } finally {
+    conn.release();
+  }
+}
+
+// POST '/credentials/reset/:token'
+export async function resetPassword(token, new_password) {
+  const db = await getDB();
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const [user] = await conn.query(
+      'SELECT * FROM reset_tokens WHERE token = ? AND is_used IS NULL AND expiry_date > NOW()',
+      [hashedToken]
+    );
+
+    const [password] = await conn.query(
+      'SELECT id, password FROM credentials WHERE id = ?',
+      [user[0].cid]
+    );
+
+    const hashed_password = await bcrypt.hash(new_password, salt_rounds);
+
+    const [result] = await conn.execute(
+      'UPDATE kabuhayan_db.credentials SET password = ? WHERE id = ?',
+      [hashed_password, password[0].id]
+    );
+
+    const [tkn] = await conn.execute(
+      'UPDATE reset_tokens SET is_used = 1 WHERE cid = ?',
+      [user[0].cid]
+    );
+
+    await conn.commit();
+    return { affectedRows: result.affectedRows };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
+// GET '/credentials/reset/:token'
+export async function verifyToken(token) {
+  const db = await getDB();
+
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  const [tokenlist] = await db.query(
+    'SELECT * FROM reset_tokens WHERE token = ? AND is_used IS NULL AND expiry_date > NOW()',
+    [hashedToken]
+  );
+  const returnedToken = tokenlist[0];
+
+  if (!returnedToken) return null;
+
+  return returnedToken;
 }
 
 // DELETE '/credentials/:id'
