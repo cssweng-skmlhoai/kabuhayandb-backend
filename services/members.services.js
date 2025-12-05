@@ -1,6 +1,6 @@
 import { getDB } from '../config/connect.js';
 import { createCredentials } from './credentials.services.js';
-import { createChange } from './changes.services.js';
+import { logChange } from './changes.services.js';
 import {
   updateFamiliesMultiple,
   createFamilies,
@@ -202,7 +202,7 @@ export async function getMemberInfoById(id) {
 export async function updateMemberInfo(id, payload) {
   const db = await getDB();
   const conn = await db.getConnection();
-  const { members, families, households, family_members } = payload;
+  const { admin_id, members, families, households, family_members } = payload;
 
   const [rows] = await conn.query(
     `
@@ -223,8 +223,6 @@ export async function updateMemberInfo(id, payload) {
     return null;
   }
 
-  const admin_id = 1; // placeholder only
-
   const { family_id, household_id } = data;
 
   try {
@@ -242,7 +240,7 @@ export async function updateMemberInfo(id, payload) {
       for (const [field, newValue] of Object.entries(members)) {
         const oldValue = oldMember?.[field] ?? null;
         if (oldValue !== newValue) {
-          await createChange(
+          await logChange(
             {
               admin_id,
               member_id: id,
@@ -269,7 +267,15 @@ export async function updateMemberInfo(id, payload) {
       for (const [field, newValue] of Object.entries(families)) {
         const oldValue = oldFamily?.[field] ?? null;
         if (oldValue !== newValue) {
-          await createChange(
+          console.log({
+            admin_id,
+            member_id: id,
+            change_type: 'Update',
+            field_changed: field,
+            old_value: oldValue,
+            new_value: newValue,
+          });
+          await logChange(
             {
               admin_id,
               member_id: id,
@@ -296,7 +302,7 @@ export async function updateMemberInfo(id, payload) {
       for (const [field, newValue] of Object.entries(households)) {
         const oldValue = oldHousehold?.[field] ?? null;
         if (oldValue !== newValue) {
-          await createChange(
+          await logChange(
             {
               admin_id,
               member_id: id,
@@ -320,7 +326,7 @@ export async function updateMemberInfo(id, payload) {
             { ...updates, family_id, member_id: id },
             conn
           );
-          await createChange(
+          await logChange(
             {
               admin_id,
               member_id: id,
@@ -336,7 +342,7 @@ export async function updateMemberInfo(id, payload) {
 
         if (update === false && family_member_id) {
           await deleteFamilyMembers(family_member_id, conn);
-          await createChange(
+          await logChange(
             {
               admin_id,
               member_id: id,
@@ -358,7 +364,7 @@ export async function updateMemberInfo(id, payload) {
           for (const [field, newValue] of Object.entries(updates)) {
             const oldValue = oldFM?.[field] ?? null;
             if (oldValue !== newValue) {
-              await createChange(
+              await logChange(
                 {
                   admin_id,
                   member_id: id,
@@ -510,7 +516,7 @@ export async function updateMembers(id, updates) {
   );
 
   if (result.affectedRows > 0 && admin_id) {
-    await createChange(
+    await logChange(
       {
         admin_id,
         member_id: id,

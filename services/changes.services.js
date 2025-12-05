@@ -1,42 +1,111 @@
 import { getDB } from '../config/connect.js';
 
 // GET '/changes'
-export async function getChanges() {
+export async function getChanges(filters) {
   const db = await getDB();
-  const [rows] = await db.query('SELECT * FROM changes');
 
-  for (const row of rows) {
-    if (row.crn != null) {
-      row.crn = String(row.crn).padStart(4, '0');
+  const { page, limit, search, dateFrom, dateTo } = filters;
+
+  let sql = `
+    SELECT 
+        c.*,
+        CONCAT(A.first_name, ' ', A.last_name) AS admin_name, 
+        CONCAT(M.first_name, ' ', M.last_name) AS member_name
+    FROM 
+        changes c
+    LEFT JOIN 
+        members A ON c.admin_id = A.id 
+    LEFT JOIN 
+        members M ON c.member_id = M.id
+  `;
+
+  const whereClauses = [];
+  const queryParams = [];
+
+  console.log(dateFrom, dateTo);
+
+  if (dateFrom && dateTo) {
+    console.log(dateFrom, dateTo);
+    if (dateFrom === dateTo) {
+      whereClauses.push(
+        `c.date_changed >= ? AND c.date_changed < DATE_ADD(?, INTERVAL 1 DAY)`
+      );
+      queryParams.push(dateFrom, dateFrom);
+    } else {
+      whereClauses.push(
+        `c.date_changed >= ? AND c.date_changed < DATE_ADD(?, INTERVAL 1 DAY)`
+      );
+      queryParams.push(dateFrom, dateTo);
     }
   }
-  return rows;
+
+  if (search) {
+    const searchTerm = `%${search}%`;
+    whereClauses.push(`
+      (
+        c.change_type LIKE ? OR 
+        c.field_changed LIKE ? OR 
+        c.new_value LIKE ? OR 
+        CONCAT(A.first_name, ' ', A.last_name) LIKE ? OR 
+        CONCAT(M.first_name, ' ', M.last_name) LIKE ?
+      )
+    `);
+    queryParams.push(
+      searchTerm,
+      searchTerm,
+      searchTerm,
+      searchTerm,
+      searchTerm
+    );
+  }
+
+  if (whereClauses.length > 0) {
+    sql += ` WHERE ` + whereClauses.join(' AND ');
+  }
+
+  const safeLimit = parseInt(limit) || 10;
+  const safePage = parseInt(page) || 1;
+  const offset = (safePage - 1) * safeLimit;
+
+  sql += ` ORDER BY c.date_changed DESC LIMIT ? OFFSET ?`;
+  queryParams.push(safeLimit, offset);
+
+  const [rows] = await db.query(sql, queryParams);
+
+  const transformedRows = rows.map((row) => {
+    const {
+      id,
+      date_changed,
+      admin_id,
+      member_id,
+      change_type,
+      field_changed,
+      old_value,
+      new_value,
+      admin_name,
+      member_name,
+    } = row;
+
+    return {
+      id,
+      date: date_changed,
+      changedBy: admin_name || admin_id,
+      member: member_name || member_id,
+      change_type: change_type,
+      field_changed: field_changed,
+      past_value: old_value,
+      new_value: new_value,
+    };
+  });
+
+  return transformedRows;
 }
 
-// GET '/changes/:id'
-export async function getChangeById(id) {
-  const db = await getDB();
-  const [rows] = await db.query('SELECT * FROM changes WHERE id = ?', [id]);
-  const certification = rows[0];
-  return certification || null;
-}
-
-// GET '/changes/:type'
-export async function getChangesByType(type) {
-  const db = await getDB();
-  const [rows] = await db.query('SELECT * FROM changes WHERE change_type = ?', [
-    type,
-  ]);
-  return rows;
-}
-
-// POST '/changes'
-export async function createChange(data, conn) {
+export async function logChange(data, conn) {
   if (!conn) {
     conn = await getDB();
   }
   const {
-    date,
     admin_id,
     member_id,
     change_type,
@@ -45,11 +114,13 @@ export async function createChange(data, conn) {
     new_value,
   } = data;
 
+  const date_changed = new Date();
+
   try {
     await conn.beginTransaction();
 
     const values = [
-      new Date(date),
+      date_changed,
       admin_id,
       member_id,
       change_type,
@@ -59,7 +130,7 @@ export async function createChange(data, conn) {
     ];
 
     const [rows] = await conn.execute(
-      'INSERT INTO kabuhayan_db.dues (`date`, `admin_id`, `member_id`, `change_type`,  `field_changed`, `old_value`, `new_value`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO kabuhayan_db.changes (`date_changed`, `admin_id`, `member_id`, `change_type`,  `field_changed`, `old_value`, `new_value`) VALUES (?, ?, ?, ?, ?, ?, ?)',
       values
     );
 
@@ -67,7 +138,7 @@ export async function createChange(data, conn) {
 
     return {
       id: rows.insertId,
-      date,
+      date_changed,
       admin_id,
       member_id,
       change_type,

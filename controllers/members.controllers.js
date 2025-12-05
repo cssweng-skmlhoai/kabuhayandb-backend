@@ -135,6 +135,7 @@ export async function updateMemberInfo(req, res) {
     const households_data = JSON.parse(req.body.households || '{}');
     const family_members_data = JSON.parse(req.body.family_members || '{}');
     const member_id = req.params.id;
+    const admin_id = req.body.admin_id;
 
     const payload = {
       members: {
@@ -144,6 +145,7 @@ export async function updateMemberInfo(req, res) {
       families: families_data,
       households: households_data,
       family_members: family_members_data,
+      admin_id,
     };
 
     const result = await MembersService.updateMemberInfo(member_id, payload);

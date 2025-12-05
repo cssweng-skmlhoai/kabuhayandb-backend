@@ -7,7 +7,5 @@ const router = Router();
 router.use(authenticateApiSecret);
 
 router.get('/', ChangesController.getChanges);
-router.get('/:id', ChangesController.getChangeById);
-router.get('/:type', ChangesController.getChangesByType);
 
 export default router;
