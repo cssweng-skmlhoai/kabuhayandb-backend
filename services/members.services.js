@@ -248,8 +248,16 @@ export async function updateMemberInfo(id, payload) {
 
       await updateMemberMultiple(id, members, conn);
 
-      for (const [field, newValue] of Object.entries(members)) {
-        const oldValue = oldMember?.[field] ?? null;
+      for (let [field, newValue] of Object.entries(members)) {
+        let oldValue;
+        if (field.includes('date')) {
+          oldValue = oldMember?.[field]
+            ? new Date(oldMember?.[field]).toISOString().split('T')[0]
+            : null;
+          newValue = newValue
+            ? new Date(newValue).toISOString().split('T')[0]
+            : null;
+        } else oldValue = oldMember?.[field] ?? null;
         if (oldValue !== newValue) {
           await logChange(
             {
@@ -372,8 +380,16 @@ export async function updateMemberInfo(id, payload) {
           const oldFM = oldFMRows[0];
           await updateFamilyMemberMultiple(family_member_id, updates, conn);
 
-          for (const [field, newValue] of Object.entries(updates)) {
-            const oldValue = oldFM?.[field] ?? null;
+          for (let [field, newValue] of Object.entries(updates)) {
+            let oldValue;
+            if (field.includes('date')) {
+              oldValue = oldFM?.[field]
+                ? new Date(oldFM?.[field]).toISOString().split('T')[0]
+                : null;
+              newValue = newValue
+                ? new Date(newValue).toISOString().split('T')[0]
+                : null;
+            } else oldValue = oldFM?.[field] ?? null;
             if (oldValue !== newValue) {
               await logChange(
                 {
