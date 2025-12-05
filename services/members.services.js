@@ -56,7 +56,7 @@ export async function getMembersHome() {
 export async function createMemberInfo(data) {
   const db = await getDB();
   const conn = await db.getConnection();
-  const { members, families, households, family_members } = data;
+  const { admin_id, members, families, households, family_members } = data;
 
   try {
     await conn.beginTransaction();
@@ -111,6 +111,17 @@ export async function createMemberInfo(data) {
     };
 
     const credentials = await createCredentials(data, conn);
+    await logChange(
+      {
+        admin_id,
+        member_id: member_data.id,
+        change_type: 'Create',
+        field_changed: 'Member',
+        old_value: '',
+        new_value: `${member_data.first_name.toUpperCase()} ${member_data.last_name.toUpperCase()}`,
+      },
+      conn
+    );
     await conn.commit();
 
     return {

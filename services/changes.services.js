@@ -22,19 +22,12 @@ export async function getChanges(filters) {
   const whereClauses = [];
   const queryParams = [];
 
-  console.log(dateFrom, dateTo);
-
   if (dateFrom && dateTo) {
-    console.log(dateFrom, dateTo);
     if (dateFrom === dateTo) {
-      whereClauses.push(
-        `c.date_changed >= ? AND c.date_changed < DATE_ADD(?, INTERVAL 1 DAY)`
-      );
-      queryParams.push(dateFrom, dateFrom);
+      whereClauses.push(`DATE(c.date_changed) = ?`);
+      queryParams.push(dateFrom);
     } else {
-      whereClauses.push(
-        `c.date_changed >= ? AND c.date_changed < DATE_ADD(?, INTERVAL 1 DAY)`
-      );
+      whereClauses.push(`DATE(c.date_changed) BETWEEN ? AND ?`);
       queryParams.push(dateFrom, dateTo);
     }
   }

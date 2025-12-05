@@ -176,6 +176,7 @@ export async function createMemberInfo(req, res) {
       families: families_data,
       households: households_data,
       family_members: family_members_data,
+      admin_id: req.body.admin_id,
     };
 
     const result = await MembersService.createMemberInfo(payload);
