@@ -2,8 +2,9 @@ import * as ChangesService from '../services/changes.services.js';
 
 export async function getChanges(req, res) {
   try {
-    const { page, limit, search, dateFrom, dateTo } = req.query;
+    const { admin, page, limit, search, dateFrom, dateTo } = req.query;
     const changes = await ChangesService.getChanges({
+      admin,
       page,
       limit,
       search,

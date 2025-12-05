@@ -4,7 +4,7 @@ import { getDB } from '../config/connect.js';
 export async function getChanges(filters) {
   const db = await getDB();
 
-  const { page, limit, search, dateFrom, dateTo } = filters;
+  const { admin, page, limit, search, dateFrom, dateTo } = filters;
 
   let sql = `
     SELECT 
@@ -21,6 +21,11 @@ export async function getChanges(filters) {
 
   const whereClauses = [];
   const queryParams = [];
+
+  if (admin) {
+    whereClauses.push(`c.admin_id = ?`);
+    queryParams.push(admin);
+  }
 
   if (dateFrom && dateTo) {
     if (dateFrom === dateTo) {
@@ -82,7 +87,8 @@ export async function getChanges(filters) {
     return {
       id,
       date: date_changed,
-      changedBy: admin_name || admin_id,
+      changedBy: admin_name,
+      admin_id: admin_id,
       member: member_name || member_id,
       change_type: change_type,
       field_changed: field_changed,
