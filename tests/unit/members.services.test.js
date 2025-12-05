@@ -220,7 +220,7 @@ describe('Testing getMembersHome() functionalities', () => {
     FROM members m
     JOIN families f ON m.family_id = f.id
     JOIN households h ON f.household_id = h.id
-    LEFT JOIN credentials c on c.member_id = m.id
+    LEFT JOIN credentials c ON c.member_id = m.id
   `);
 
     expect(result).toBe(mock_members);
@@ -660,7 +660,7 @@ describe('Testing getMemberInfoById() functionalities', () => {
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
-      JOIN credentials c ON c.member_id = m.id
+      LEFT JOIN credentials c ON c.member_id = m.id
       WHERE m.id = ?;
     `,
       [2]
@@ -725,7 +725,8 @@ describe('Testing getMemberInfoById() functionalities', () => {
         h.Maynilad,
         h.Septic_Tank,
         f.land_acquisition,
-        f.status_of_occupancy
+        f.status_of_occupancy,
+        c.pfp
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id

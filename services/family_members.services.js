@@ -59,7 +59,7 @@ export async function createFamilyMember(data, conn) {
     gender,
     relation_to_member,
     member_id,
-    educational_attainment
+    educational_attainment,
   };
 
   return created_family_member;
