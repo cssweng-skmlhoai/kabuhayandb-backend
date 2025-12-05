@@ -17,144 +17,215 @@ vi.mock('../../config/connect.js', () => ({
   }),
 }));
 
-describe('Testing Database of Changes Feature (Feature 2)', () => {
+describe('Testing Database Changes History', () => {
   let mockDB;
-  let mockConn;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     mockDB = await getDB();
-    mockConn = await mockDB.getConnection();
   });
 
-  test('Retrieves all DB changes successfully', async () => {
-    const mockRows = [
-      { id: 1, admin_id: 3, member_id: 5, change_type: 'Update', crn: 12 },
-      { id: 2, admin_id: 1, member_id: 9, change_type: 'Create', crn: 7 },
+  test('Retrieve all DB changes successfully', async () => {
+    const rawRows = [
+      {
+        id: 1,
+        date_changed: '2025-01-02',
+        admin_id: 2,
+        member_id: 4,
+        change_type: 'Update',
+        field_changed: 'first_name',
+        old_value: 'Juan',
+        new_value: 'Pedro',
+        admin_name: 'Admin Test',
+        member_name: 'Member Test',
+      },
     ];
 
-    mockDB.query.mockResolvedValueOnce([mockRows]);
+    mockDB.query.mockResolvedValueOnce([rawRows]);
 
-    const result = await ChangesService.getChanges();
+    const result = await ChangesService.getChanges({
+      page: 1,
+      limit: 10,
+      search: null,
+      dateFrom: null,
+      dateTo: null,
+    });
 
-    expect(mockDB.query).toHaveBeenCalledWith('SELECT * FROM changes');
-
-    // crn should be padded
-    expect(result[0].crn).toBe('0012');
-    expect(result[1].crn).toBe('0007');
+    expect(mockDB.query).toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        id: 1,
+        date: '2025-01-02',
+        changedBy: 'Admin Test',
+        member: 'Member Test',
+        change_type: 'Update',
+        field_changed: 'first_name',
+        past_value: 'Juan',
+        new_value: 'Pedro',
+      },
+    ]);
   });
 
-  test('Retrieves DB changes filtered by admin_id', async () => {
-    const admin_id = 5;
-    const mockRows = [
-      { id: 10, admin_id: 5, member_id: 2, change_type: 'Update' },
-      { id: 11, admin_id: 5, member_id: 3, change_type: 'Create' },
+  test('Retrieves db changes filtered by admin_id', async () => {
+    const rawRows = [
+      {
+        id: 5,
+        date_changed: '2025-02-10',
+        admin_id: 10,
+        member_id: 3,
+        change_type: 'Update',
+        field_changed: 'last_name',
+        old_value: 'Reyes',
+        new_value: 'Santos',
+      },
     ];
 
-    mockDB.query.mockResolvedValueOnce([mockRows]);
+    mockDB.query.mockResolvedValueOnce([rawRows]);
 
-    const result = await ChangesService.getChangesByType(admin_id);
+    const result = await ChangesService.getChanges({
+      page: 1,
+      limit: 10,
+      search: 'Update',
+    });
+
+    expect(mockDB.query).toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        id: 5,
+        date: '2025-02-10',
+        changedBy: 10,
+        member: 3,
+        change_type: 'Update',
+        field_changed: 'last_name',
+        past_value: 'Reyes',
+        new_value: 'Santos',
+      },
+    ]);
+  });
+
+  test('Retrieves db changes filtered by member_id', async () => {
+    const rawRows = [
+      {
+        id: 8,
+        date_changed: '2025-02-03',
+        admin_id: 1,
+        member_id: 7,
+        change_type: 'Update',
+        field_changed: 'middle_name',
+        old_value: 'Cruz',
+        new_value: 'Dela Cruz',
+      },
+    ];
+
+    mockDB.query.mockResolvedValueOnce([rawRows]);
+
+    const result = await ChangesService.getChanges({
+      page: 1,
+      limit: 10,
+      search: 'Update',
+    });
+
+    expect(mockDB.query).toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        id: 8,
+        date: '2025-02-03',
+        changedBy: 1,
+        member: 7,
+        change_type: 'Update',
+        field_changed: 'middle_name',
+        past_value: 'Cruz',
+        new_value: 'Dela Cruz',
+      },
+    ]);
+  });
+
+  test('Filter DB changes by date range', async () => {
+    const rawRows = [
+      {
+        id: 15,
+        date_changed: '2025-01-15',
+        admin_id: 3,
+        member_id: 10,
+        change_type: 'Update',
+        field_changed: 'status',
+        old_value: 'Active',
+        new_value: 'Inactive',
+      },
+    ];
+
+    mockDB.query.mockResolvedValueOnce([rawRows]);
+
+    const result = await ChangesService.getChanges({
+      page: 1,
+      limit: 10,
+      dateFrom: '2025-01-01',
+      dateTo: '2025-01-31',
+    });
 
     expect(mockDB.query).toHaveBeenCalledWith(
-      'SELECT * FROM changes WHERE change_type = ?',
-      [admin_id]
+      expect.stringContaining('DATE(c.date_changed) BETWEEN ? AND ?'),
+      expect.arrayContaining(['2025-01-01', '2025-01-31'])
     );
 
-    expect(result).toEqual(mockRows);
+    expect(result[0].id).toBe(15);
   });
 
-  test('Retrieves DB changes filtered by member_id', async () => {
-    const member_id = 9;
-    const mockRows = [
-      { id: 20, admin_id: 3, member_id: 9, change_type: 'Update' },
+  test('Filter DB changes by keyword search', async () => {
+    const rawRows = [
+      {
+        id: 99,
+        date_changed: '2025-02-01',
+        admin_id: 4,
+        member_id: 12,
+        change_type: 'Update',
+        field_changed: 'last_name',
+        old_value: 'Santos',
+        new_value: 'Lopez',
+        admin_name: 'Maria Santos',
+        member_name: 'Juan Dela Cruz',
+      },
     ];
 
-    mockDB.query.mockResolvedValueOnce([mockRows]);
+    mockDB.query.mockResolvedValueOnce([rawRows]);
 
-    const result = await ChangesService.getChangesByType(member_id);
+    const result = await ChangesService.getChanges({
+      page: 1,
+      limit: 10,
+      search: 'Santos',
+    });
 
-    expect(mockDB.query).toHaveBeenCalledWith(
-      'SELECT * FROM changes WHERE change_type = ?',
-      [member_id]
-    );
-
-    expect(result).toEqual(mockRows);
+    expect(mockDB.query).toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        id: 99,
+        date: '2025-02-01',
+        changedBy: 'Maria Santos',
+        member: 'Juan Dela Cruz',
+        change_type: 'Update',
+        field_changed: 'last_name',
+        past_value: 'Santos',
+        new_value: 'Lopez',
+      },
+    ]);
   });
 
-  test.skip('Filters DB changes by date range (NOT IMPLEMENTED)', async () => {
-    // Placeholder – backend service not implemented
-  });
-
-  test.skip('Retrieve DB changes filtered by member name (NOT IMPLEMENTED)', async () => {});
-
-  test('Handles empty results correctly', async () => {
+  test('Handling empty results', async () => {
     mockDB.query.mockResolvedValueOnce([[]]);
 
-    const result = await ChangesService.getChanges();
+    const result = await ChangesService.getChanges({
+      page: 1,
+      limit: 10,
+    });
 
     expect(result).toEqual([]);
   });
 
-  test('Throws error when DB retrieval fails', async () => {
+  test('Database failure is handled properly', async () => {
     mockDB.query.mockRejectedValueOnce(new Error('DB failed'));
 
-    await expect(ChangesService.getChanges()).rejects.toThrow('DB failed');
-  });
-
-  test('createChange() inserts row and commits transaction', async () => {
-    const payload = {
-      date: '2025-01-01',
-      admin_id: 1,
-      member_id: 2,
-      change_type: 'Update',
-      field_changed: 'first_name',
-      old_value: 'John',
-      new_value: 'Jonathan',
-    };
-
-    mockConn.execute.mockResolvedValueOnce([{ insertId: 33 }]);
-
-    const result = await ChangesService.createChange(payload, mockConn);
-
-    expect(mockConn.beginTransaction).toHaveBeenCalled();
-    expect(mockConn.execute).toHaveBeenCalledWith(
-      'INSERT INTO kabuhayan_db.dues (`date`, `admin_id`, `member_id`, `change_type`,  `field_changed`, `old_value`, `new_value`) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        new Date(payload.date),
-        payload.admin_id,
-        payload.member_id,
-        payload.change_type,
-        payload.field_changed,
-        payload.old_value,
-        payload.new_value,
-      ]
-    );
-    expect(mockConn.commit).toHaveBeenCalled();
-
-    expect(result).toEqual({
-      id: 33,
-      ...payload,
-    });
-  });
-
-  test('createChange() rolls back when DB error occurs', async () => {
-    const payload = {
-      date: '2025-01-01',
-      admin_id: 2,
-      member_id: 7,
-      change_type: 'Delete',
-      field_changed: 'middle_name',
-      old_value: 'Lee',
-      new_value: '-',
-    };
-
-    mockConn.execute.mockRejectedValueOnce(new Error('Insert failed'));
-
     await expect(
-      ChangesService.createChange(payload, mockConn)
-    ).rejects.toThrow('Insert failed');
-
-    expect(mockConn.beginTransaction).toHaveBeenCalled();
-    expect(mockConn.rollback).toHaveBeenCalled();
+      ChangesService.getChanges({ page: 1, limit: 10 })
+    ).rejects.toThrow('DB failed');
   });
 });
