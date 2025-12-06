@@ -19,7 +19,7 @@ const startServer = async () => {
     await initDB();
     console.log('Database initialized');
     const allowedOrigins = [
-      'https://kabuhayandb-backend-vtvm.onrender.com',
+      'http://localhost:5173',
       process.env.IP_SAFE,
       process.env.CORS_ORIGIN,
     ].filter(Boolean);
