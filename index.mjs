@@ -18,8 +18,11 @@ const startServer = async () => {
   try {
     await initDB();
     console.log('Database initialized');
+
+    const VERIFY_VERCEL_ORIGIN = 'https://kabuhayandb-frontend-2-git-main-ntole24s-projects.vercel.app';
+
     const allowedOrigins = [
-      'https://kabuhayandb-backend-vtvm.onrender.com',
+      VERIFY_VERCEL_ORIGIN,
       process.env.IP_SAFE,
       process.env.CORS_ORIGIN,
     ].filter(Boolean);
