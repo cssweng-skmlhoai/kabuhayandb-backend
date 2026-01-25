@@ -5,12 +5,14 @@ import * as FamilyService from '../../services/families.services.js';
 import * as HouseholdService from '../../services/households.services.js';
 import * as MembersService from '../../services/members.services.js';
 import * as FamilyMemberService from '../../services/family_members.services.js';
+import * as CredentialsService from '../../services/credentials.services.js';
 
 vi.mock('../../config/connect.js', () => ({
   getDB: vi.fn().mockResolvedValue({
     //Mock SQL queries of getDB
     query: vi.fn(),
     execute: vi.fn(),
+    release: vi.fn(),
     getConnection: vi.fn().mockResolvedValue({
       //getDB also returns an object of getConnections() that has its own set of queries and executes
       query: vi.fn(), //Mock those as well
@@ -41,6 +43,14 @@ vi.mock('../../services/family_members.services.js', () => ({
   updateFamilyMemberMultiple: vi.fn(),
   createFamilyMember: vi.fn(),
   deleteFamilyMembers: vi.fn(),
+}));
+
+vi.mock('../../services/credentials.services.js', () => ({
+  createCredentials: vi.fn(),
+}));
+
+vi.mock('../../services/changes.services.js', () => ({
+  logChange: vi.fn(),
 }));
 
 describe('Testing getMembers() funtionalities', () => {
@@ -434,6 +444,11 @@ describe('Testing createMemberInfo() functionalities', () => {
           educational_attainment: 'Highschool',
         },
       ],
+
+      credentials: {
+        username: 'radzig_kobyla',
+        password: expect.any(String),
+      },
     });
 
     expect(mockConnection.release).toBeCalled();
@@ -535,7 +550,6 @@ describe('Testing createMemberInfo() functionalities', () => {
       educational_attainment: 'Highschool',
     });
 
-    mockConnection.execute.mockResolvedValueOnce([{ insertId: 1 }]); //Mock execute in createMembers
     vi.spyOn(HouseholdService, 'createHouseholds').mockRejectedValue(
       new Error('Test Error')
     ); //force error
@@ -730,6 +744,7 @@ describe('Testing getMemberInfoById() functionalities', () => {
       FROM members m
       JOIN families f ON m.family_id = f.id
       JOIN households h ON f.household_id = h.id
+      LEFT JOIN credentials c ON c.member_id = m.id
       WHERE m.id = ?;
     `,
       [2]
@@ -799,7 +814,21 @@ describe('Testing updateMemberInfo() functionalities', () => {
     //mock database functions
     mockConnection.query.mockResolvedValueOnce([
       [{ family_id: 1, household_id: 2 }],
-    ]);
+    ]); // id lookup
+
+    mockConnection.query.mockResolvedValueOnce([
+      [{ id: 2, last_name: 'OldName' }],
+    ]); // old member lookup
+
+    mockConnection.query.mockResolvedValueOnce([
+      [{ id: 1, head_position: 'Father' }],
+    ]); // old family lookup
+
+    mockConnection.query.mockResolvedValueOnce([
+      [{ id: 2, condition_type: 'Good' }],
+    ]); // old house lookup
+
+    mockConnection.execute.mockResolvedValueOnce([{ affectedRows: 1 }]); // execute all updates
 
     //run function
     const result = await MembersService.updateMemberInfo(id, mock_payload);
@@ -902,6 +931,10 @@ describe('Testing updateMemberInfo() functionalities', () => {
       [{ family_id: 1, household_id: 2 }],
     ]);
 
+    mockConnection.query.mockResolvedValueOnce([
+      [{ id: 1, last_name: 'OldName' }],
+    ]);
+
     const result = await MembersService.updateMemberInfo(id, mock_payload);
 
     expect(FamilyMemberService.updateFamilyMemberMultiple).toHaveBeenCalledWith(
@@ -932,6 +965,11 @@ describe('Testing updateMemberInfo() functionalities', () => {
     mockConnection.query.mockResolvedValueOnce([
       [{ family_id: 1, household_id: 2 }],
     ]);
+
+    mockConnection.query.mockResolvedValueOnce([
+      [{ id: 2, first_name: 'OldName' }],
+    ]);
+
     mockConnection.execute.mockRejectedValueOnce(new Error('Simulated error')); //mock fail at updateMemberMultiple
 
     await expect(
@@ -1367,7 +1405,7 @@ describe('Testing deleteMembers() functionalities', () => {
     mockDB.query.mockResolvedValueOnce([
       [
         {
-          id: 2,
+          id: 3,
           last_name: 'Morgan',
           first_name: 'Arthur',
           middle_name: 'Van Der Linde',
@@ -1401,8 +1439,8 @@ describe('Testing deleteMembers() functionalities', () => {
 
     expect(mockDB.execute).toHaveBeenNthCalledWith(
       1,
-      'DELETE FROM kabuhayan_db.credentials WHERE id = ?',
-      [2]
+      'DELETE FROM kabuhayan_db.credentials WHERE member_id = ?',
+      [3]
     );
 
     expect(mockDB.execute).toHaveBeenNthCalledWith(

@@ -632,7 +632,7 @@ export async function deleteMembers(id) {
   affectedRows += householdResult; //Doing this will cause an undefined value
 
   const [result] = await db.execute(
-    'DELETE FROM kabuhayan_db.credentials WHERE id = ?',
+    'DELETE FROM kabuhayan_db.credentials WHERE member_id = ?',
     [memberToDelete.id]
   );
 
