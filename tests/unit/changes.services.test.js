@@ -57,6 +57,7 @@ describe('Testing Database Changes History', () => {
         id: 1,
         date: '2025-01-02',
         changedBy: 'Admin Test',
+        admin_id: 2,
         member: 'Member Test',
         change_type: 'Update',
         field_changed: 'first_name',
@@ -77,6 +78,7 @@ describe('Testing Database Changes History', () => {
         field_changed: 'last_name',
         old_value: 'Reyes',
         new_value: 'Santos',
+        admin_name: 'Admin Ten',
       },
     ];
 
@@ -93,7 +95,8 @@ describe('Testing Database Changes History', () => {
       {
         id: 5,
         date: '2025-02-10',
-        changedBy: 10,
+        changedBy: 'Admin Ten',
+        admin_id: 10,
         member: 3,
         change_type: 'Update',
         field_changed: 'last_name',
@@ -114,6 +117,7 @@ describe('Testing Database Changes History', () => {
         field_changed: 'middle_name',
         old_value: 'Cruz',
         new_value: 'Dela Cruz',
+        admin_name: 'Admin One',
       },
     ];
 
@@ -130,7 +134,8 @@ describe('Testing Database Changes History', () => {
       {
         id: 8,
         date: '2025-02-03',
-        changedBy: 1,
+        changedBy: 'Admin One',
+        admin_id: 1,
         member: 7,
         change_type: 'Update',
         field_changed: 'middle_name',
@@ -151,6 +156,7 @@ describe('Testing Database Changes History', () => {
         field_changed: 'status',
         old_value: 'Active',
         new_value: 'Inactive',
+        admin_name: 'Admin Three',
       },
     ];
 
@@ -201,6 +207,7 @@ describe('Testing Database Changes History', () => {
         id: 99,
         date: '2025-02-01',
         changedBy: 'Maria Santos',
+        admin_id: 4,
         member: 'Juan Dela Cruz',
         change_type: 'Update',
         field_changed: 'last_name',
