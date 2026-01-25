@@ -1,4 +1,3 @@
-/* global Buffer */
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { getDB } from '../../config/connect.js';
 
